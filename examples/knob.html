@@ -1,0 +1,26 @@
+<!doctype html>
+<html>
+<head>
+    <script src="../src/knob.js"></script>
+</head>
+<body>
+    <div>
+        <div id="foo">foo</div>
+        <div id="bar">bar</div>
+    </div>
+</body>
+<script type="text/javascript">
+
+    document.addEventListener("DOMContentLoaded", function(event) {
+        console.log('DOMContentLoaded');
+
+        var k1 = new knob(1);
+        console.log(k1.value);
+
+        k1.value = 99;
+        console.log(k1.value);
+
+    });
+
+</script>
+</html>
