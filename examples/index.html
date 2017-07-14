@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>svg in nested grid</title>
+    <script src="../src/SynthUI.js"></script>
+    <style>
+        body {
+            padding: 0;
+            margin: 20px 20px;
+        }
+        .dial {
+            height: 20vh;   /* 20% of viewport height */
+            background-color: #ccc;
+            display: block;
+        }
+        .dial text {
+            font-family: sans-serif;
+            font-size: 100%;
+            cursor: default;
+            z-index: 1;
+        }
+        text.value, text.label {
+            text-anchor: middle;
+        }
+        .arc {
+            stroke: black;
+            stroke-width: 4px;
+            fill: transparent;
+        }
+        .back {
+            stroke: #aaa;
+            stroke-width: 6px;
+            fill: transparent;
+        }
+        .marker {
+            stroke: #aaa;
+            stroke-width: 1px;
+        }
+    </style>
+</head>
+<body>
+    <div>
+        <svg class="dial" id="dial1"></svg>
+    </div>
+</body>
+<script>
+
+    document.addEventListener("DOMContentLoaded", function(event) {
+//        var dials = document.querySelectorAll('svg.dial');
+//        [].forEach.call(dials, function(item) {
+//            createDial(item, 300.0, "Foo bar");
+//        });
+
+        var k1 = new SynthUI.knob(100);
+        var k2 = SynthUI.knob(200);
+
+        console.log('k1 value: ', k1.value());
+        console.log('k2 value: ', k2.value());
+
+        k1.t();
+        k2.t();
+
+        k1.setValue(99);
+        console.log('k1 value: ', k1.value());
+        console.log('k2 value: ', k2.value());
+
+        k2.setValue(266);
+        console.log('k1 value: ', k1.value());
+        console.log('k2 value: ', k2.value());
+
+    });
+
+</script>
+</html>
