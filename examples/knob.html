@@ -7,12 +7,12 @@
             padding: 0;
             margin: 40px 20px;
         }
-        .dial {
+        .knob {
             height: 20vh;   /* 20% of viewport height */
             background-color: #ccc;
             display: block;
         }
-        .dial text {
+        .knob text {
             font-family: sans-serif;
             font-size: 100%;
             cursor: default;
@@ -49,15 +49,12 @@
     document.addEventListener("DOMContentLoaded", function(event) {
         console.log('DOMContentLoaded');
 
-//        var k1 = new knob(1);
-//        console.log(k1.value);
-//
-//        k1.value = 99;
-//        console.log(k1.value);
-
         var knobs = document.querySelectorAll('svg.knob');
         [].forEach.call(knobs, function(element) {
             new knob(element, {arcMin:45});
+            element.addEventListener("change", function(event) {
+                console.log('change event', event);
+            });
         });
 
     });

@@ -16,17 +16,22 @@
         // If another label is set in data-config then this later definition will override data-label.
         let default_label = element.dataset.label !== undefined ? element.dataset.label : '';
 
+        // For the user convenience, the label can be set with the "data-label" attribute.
+        // If another label is set in data-config then this later definition will override data-label.
+        let default_value = element.dataset.value !== undefined ? element.dataset.value : 0;
+
         let defaults = {
             // user configurable
             // no camelCase because we want to be able to have the same name in data- attributes.
             label: default_label,
             zero_at: 270.0,      // the 0 degree will be at 270 polar degrees (6 o'clock).
-            arc_min: 30.0,          // Angle in dial coordinates (0 at 6 0'clock)
-            arc_max: 330.0,         // Angle in dial coordinates (0 at 6 0'clock)
+            arc_min: 30.0,          // Angle in knob coordinates (0 at 6 0'clock)
+            arc_max: 330.0,         // Angle in knob coordinates (0 at 6 0'clock)
             cursor_start: 20,            // 20% of radius
             cursor_end: 30,            // 20% of radius
             cursor_only: false,  //TODO
             rotation: CW,
+            default_value: 0,
             value_min: 0.0,
             value_max: 100.0,
             value_resolution: 1,      // null means ignore
@@ -64,13 +69,13 @@
         var currentTarget;
         var targetRect;
 
-        // Center of arc in dial coordinates and in ViewPort's pixels relative to the <svg> ClientBoundingRect.
+        // Center of arc in knob coordinates and in ViewPort's pixels relative to the <svg> ClientBoundingRect.
         var arcCenterXPixels = 0;
-        var arcCenterYPixels = 0; // equal to arcCenterXPixels because the dial is a circle
+        var arcCenterYPixels = 0; // equal to arcCenterXPixels because the knob is a circle
 
         // start of arc, in ViewBox coordinates, computed once during the init
-        var arcStartX;     // dial coordinates
-        var arcStartY;     // dial coordinates
+        var arcStartX;     // knob coordinates
+        var arcStartY;     // knob coordinates
 
         // internals
         var minAngle = 0.0;      // initialized in init()
@@ -80,7 +85,7 @@
         var path_start = '';        // SVG path syntax
         var mouseWheelDirection = 1;
 
-        var value = 0.0;
+        var value = 0.0;        // current value [value_min..value_max]
 
         // let value = init;   // value is directly accessible via the getter and setter defined below
         // let getValue = function() {
@@ -92,8 +97,11 @@
 
         init();
 
-        // let dialAngle = 120;
-        setPolarAngle(dialToPolarAngle(270));     // TODO: remove setPolarAngle()
+        draw();
+        attachEventHandlers();
+
+        // let knobAngle = 120;
+        // setPolarAngle(knobToPolarAngle(270));     // TODO: remove setPolarAngle()
 
 
 
@@ -127,15 +135,17 @@
 
 
             // compute min and max angles:
-            minAngle = dialToPolarAngle(config.arc_min);
-            maxAngle = dialToPolarAngle(config.arc_max);
+            minAngle = knobToPolarAngle(config.arc_min);
+            maxAngle = knobToPolarAngle(config.arc_max);
 
             // set initial angle:
-            setPolarAngle(minAngle);   // init polarAngle
+
+            //setPolarAngle(minAngle);   // init polarAngle
+            setValue(config.default_value);
+
+            // compute initial viewBox coordinates (independent from browser resizing):
 
             let angle_rad = getPolarAngle() * Math.PI / 180.0;
-
-            // compute initial viewBox coordinates (independent from browser resizing)
             arcStartX = getViewboxX(Math.cos(angle_rad) * RADIUS);
             arcStartY = getViewboxY(Math.sin(angle_rad) * RADIUS);
 
@@ -156,12 +166,10 @@
 
             mouseWheelDirection = _getOS() === 'Mac OS' ? -1 : 1;
 
-            draw();
-            attachEventHandlers();
-        };
+        }
 
-        function getValue() {
-            let i = polarToDialAngle(polarAngle);
+        function getValue(polar) {
+            let i = polarToKnobAngle(polar === undefined ? polarAngle : polar);
             let v = ((i - config.arc_min) / (config.arc_max - config.arc_min)) * (config.value_max - config.value_min) + config.value_min;
             if (config.value_resolution === null) {
                 return v;
@@ -169,19 +177,36 @@
             return Math.round(v / config.value_resolution) * config.value_resolution;
         }
 
+        function setValue(v) {
+            value = v;
+            let a = ((v - config.value_min) / (config.value_max - config.value_min)) * (config.arc_max - config.arc_min) + config.arc_min;
+            console.log(`setValue(${v}) --> angle ${a}`);
+            setPolarAngle(knobToPolarAngle(a));
+        }
+
         /**
          * Angle in degrees in polar coordinates (0 degrees at 3 o'clock)
          */
         function setPolarAngle(angle) {
+
+            let previous = polarAngle;
+
             let a = (angle + 360.0) % 360.0;    // we add 360 to handle negative values down to -360
             // apply boundaries
-            let b = polarToDialAngle(a);
+            let b = polarToKnobAngle(a);
             if (b < config.arc_min) {
                 a = minAngle;
             } else if (b > config.arc_max) {
                 a = maxAngle;
             }
             polarAngle = a;
+
+            if (polarAngle !== previous) {
+                if (getValue(previous) !== getValue()) {
+                    notifyChange();
+                }
+            }
+
         }
 
         function incPolarAngle(increment) {
@@ -196,16 +221,16 @@
         }
 
         /**
-         * Return polar coordinates angle from our "dial coordinates" angle
+         * Return polar coordinates angle from our "knob coordinates" angle
          */
-        function dialToPolarAngle(angle) {
+        function knobToPolarAngle(angle) {
             let a = config.zero_at - angle;
             if (a < 0) a = a + 360.0;
-            console.log(`dialToPolarAngle ${angle} -> ${a}`);
+            console.log(`knobToPolarAngle ${angle} -> ${a}`);
             return a;
         }
 
-        function polarToDialAngle(angle) {
+        function polarToKnobAngle(angle) {
             //TODO: CCW or CW. "-" for changing CCW to CW
             return (config.zero_at - angle + 360.0) % 360.0;       // we add 360 to handle negative values down to -360
         }
@@ -236,7 +261,7 @@
             // SVG d: "A rx,ry xAxisRotate LargeArcFlag,SweepFlag x,y".
             // SweepFlag is either 0 or 1, and determines if the arc should be swept in a clockwise (1), or anti-clockwise (0) direction
 
-            console.log(`getPath from ${minAngle} to ${endAngle}`);     // 240 330; 240-330=-90 + 360=270
+            //console.log(`getPath from ${minAngle} to ${endAngle}`);     // 240 330; 240-330=-90 + 360=270
 
             let a_rad = endAngle * Math.PI / 180.0;
             let endX = getViewboxX(Math.cos(a_rad) * RADIUS);
@@ -262,21 +287,11 @@
                 path += `L ${cursor_endX},${cursor_endY}`;
             }
 
-            console.log(path);
+            //console.log(path);
 
             return path;
         }
 
-        /**
-         *
-         */
-        function redraw() {
-            //TODO: setLabel()
-            //TODO: setValue()
-            currentTarget.childNodes[1].textContent = polarToDialAngle(getPolarAngle()).toFixed(0);
-            currentTarget.childNodes[2].textContent = getValue().toFixed(3);
-            currentTarget.childNodes[3].setAttributeNS(null, "d", getPath(getPolarAngle()));
-        }
 
         /**
          * startDrag() must have been called before to init the targetRect variable.
@@ -418,14 +433,14 @@
 
         function draw() {
 
-            console.log('draw', element);
+            //console.log('draw', element);
 
             // https://www.w3.org/TR/SVG/render.html#RenderingOrder:
             // Elements in an SVG document fragment have an implicit drawing order, with the first elements in the SVG document
             // fragment getting "painted" first. Subsequent elements are painted on top of previously painted elements.
             // ==> first element -> "painted" first
 
-            let angleTo = 270;
+            // let angleTo = 270;
             // let label = 'Label';
 
             let back = document.createElementNS(NS, "circle");
@@ -439,7 +454,7 @@
             valueText.setAttributeNS(null, "x", "50");
             valueText.setAttributeNS(null, "y", "55");
             valueText.setAttribute("class", "value");
-            valueText.textContent = angleTo;
+            valueText.textContent = getValue().toFixed(2);
             element.appendChild(valueText);
 
             let labelText = document.createElementNS(NS, "text");
@@ -449,7 +464,7 @@
             labelText.textContent = config.label;
             element.appendChild(labelText);
 
-            let p = getPath(dialToPolarAngle(angleTo));     // TODO: value to arc
+            let p = getPath(polarAngle);     // TODO: value to arc
 
             let path = document.createElementNS(NS, "path");
             path.setAttributeNS(null, "d", p);
@@ -457,10 +472,22 @@
 
             element.setAttributeNS("http://www.w3.org/2000/xmlns/", "xmlns:xlink", "http://www.w3.org/1999/xlink");
             element.setAttributeNS(null, "viewBox", "0 0 100 120");
-            element.setAttribute("class", "dial");
+            element.setAttribute("class", "knob");
             element.appendChild(path);
 
-        };  // draw()
+        }  // draw()
+
+        /**
+         *
+         */
+        function redraw() {
+            //TODO: setLabel()
+            //TODO: setValue()
+            // currentTarget.childNodes[1].textContent = polarToKnobAngle(getPolarAngle()).toFixed(0);
+            // currentTarget.childNodes[2].textContent = getValue().toFixed(3);
+            currentTarget.childNodes[1].textContent = getValue().toFixed(2);
+            currentTarget.childNodes[3].setAttributeNS(null, "d", getPath(getPolarAngle()));
+        }
 
         function attachEventHandlers() {
             element.addEventListener("mousedown", function(e) {
@@ -469,7 +496,15 @@
             element.addEventListener("wheel", function(e) {
                 mouseWheelHandler(e);
             });
-        };
+        }
+
+        function notifyChange() {
+            console.log('knob value has changed');
+            // does the change of angle affect the value?
+            let value = getValue();     // TODO: cache the value
+            let event = new CustomEvent('change', { 'detail': value });
+            element.dispatchEvent(event);
+        }
 
         return {
             // get value() {
