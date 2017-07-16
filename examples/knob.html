@@ -8,7 +8,7 @@
             margin: 40px 20px;
         }
         .knob {
-            height: 20vh;   /* 20% of viewport height */
+            height: 40vh;   /* 20% of viewport height */
             background-color: #ccc;
             display: block;
         }
@@ -35,13 +35,28 @@
             stroke: #aaa;
             stroke-width: 1px;
         }
+        #knob2 text.value {
+            font-family: sans-serif;
+            font-size: 175%;
+            font-weight: bold;
+            cursor: default;
+            z-index: 1;
+            baseline-shift: -18%;   /* use this property to correct the text vertical position */
+        }
     </style>
 </head>
 <body>
 <div>
     <svg class="knob" id="knob1" data-config='{"label": "Foo"}' data-label="Title"></svg>
-    <svg class="knob" id="knob2" data-config='{"arc_min": 10, "value_max":127}' data-label="Bar"></svg>
+    <svg class="knob" id="knob2" data-config='{"arc_min": 0, "value_max":127}' data-label="Bar"></svg>
     <!--<div class="knob-menu" id="knob1-menu"></div>-->
+    <input type="text" id="i" /><button id="b">set value on knob 1</button>
+    <div>
+        knob 1 value: <span id="v-knob1"></span>
+    </div>
+    <div>
+        knob 2 value: <span id="v-knob2"></span>
+    </div>
 </div>
 </body>
 <script type="text/javascript">
@@ -49,12 +64,31 @@
     document.addEventListener("DOMContentLoaded", function(event) {
         console.log('DOMContentLoaded');
 
+        var my_knobs = {};
+
         var knobs = document.querySelectorAll('svg.knob');
         [].forEach.call(knobs, function(element) {
-            new knob(element, {arcMin:45});
+            console.log('new knob for', element.id);
+            my_knobs[element.id] = new knob(element, {arcMin:45});
+
+            console.log('addf listener for', element.id);
             element.addEventListener("change", function(event) {
                 console.log('change event', event);
+                document.getElementById('v-' + element.id).innerHTML = event.detail;
             });
+        });
+
+        console.log(my_knobs);
+
+        var i = document.getElementById('i');
+        i.addEventListener("change", function(event) {
+//            let k = document.getElementById('knob1');
+//            console.log(k);
+            console.log(event, this, this.value);
+            let v = parseFloat(this.value);
+            if (!isNaN(v)) {
+                my_knobs['knob1'].value = v;
+            }
         });
 
     });

@@ -58,6 +58,9 @@
 
         console.groupEnd();
 
+        // elem.prototype.setValue = function() {
+        //     console.log('element set value');
+        // };
 
         // NOTE: viewBox must be 100x120: 100x100 for the arc and 100x20 below for the label.
 
@@ -66,7 +69,7 @@
         const RADIUS = 40;          // a bit less than viewBox/2 to have a margin outside the arc. Must also takes into account the width of the arc stroke.
 
         // mouse drag support
-        var currentTarget;
+        var currentTarget;  //TODO: could be replaced by element ?
         var targetRect;
 
         // Center of arc in knob coordinates and in ViewPort's pixels relative to the <svg> ClientBoundingRect.
@@ -141,7 +144,7 @@
             // set initial angle:
 
             //setPolarAngle(minAngle);   // init polarAngle
-            setValue(config.default_value);
+            changeValue(config.default_value);
 
             // compute initial viewBox coordinates (independent from browser resizing):
 
@@ -177,11 +180,17 @@
             return Math.round(v / config.value_resolution) * config.value_resolution;
         }
 
-        function setValue(v) {
+        function changeValue(v) {
             value = v;
             let a = ((v - config.value_min) / (config.value_max - config.value_min)) * (config.arc_max - config.arc_min) + config.arc_min;
-            console.log(`setValue(${v}) --> angle ${a}`);
+            console.log(`changeValue(${v}) --> angle ${a}`);
             setPolarAngle(knobToPolarAngle(a));
+        }
+
+
+        function setValue(v) {
+            changeValue(v);
+            redraw();
         }
 
         /**
@@ -261,7 +270,7 @@
             // SVG d: "A rx,ry xAxisRotate LargeArcFlag,SweepFlag x,y".
             // SweepFlag is either 0 or 1, and determines if the arc should be swept in a clockwise (1), or anti-clockwise (0) direction
 
-            //console.log(`getPath from ${minAngle} to ${endAngle}`);     // 240 330; 240-330=-90 + 360=270
+            console.log(`getPath from ${minAngle} to ${endAngle}`);     // 240 330; 240-330=-90 + 360=270
 
             let a_rad = endAngle * Math.PI / 180.0;
             let endX = getViewboxX(Math.cos(a_rad) * RADIUS);
@@ -284,10 +293,10 @@
                 let cursorLength = RADIUS * ((100.0 - config.cursor_end) / 100.0);  // cursor is in percents
                 let cursor_endX = getViewboxX(Math.cos(a_rad) * cursorLength);
                 let cursor_endY = getViewboxY(Math.sin(a_rad) * cursorLength);
-                path += `L ${cursor_endX},${cursor_endY}`;
+                path += ` L ${cursor_endX},${cursor_endY}`;
             }
 
-            //console.log(path);
+            console.log(path);
 
             return path;
         }
@@ -433,15 +442,16 @@
 
         function draw() {
 
-            //console.log('draw', element);
+            console.log('draw', element);
 
             // https://www.w3.org/TR/SVG/render.html#RenderingOrder:
             // Elements in an SVG document fragment have an implicit drawing order, with the first elements in the SVG document
             // fragment getting "painted" first. Subsequent elements are painted on top of previously painted elements.
             // ==> first element -> "painted" first
 
-            // let angleTo = 270;
-            // let label = 'Label';
+            element.setAttributeNS("http://www.w3.org/2000/xmlns/", "xmlns:xlink", "http://www.w3.org/1999/xlink");
+            element.setAttributeNS(null, "viewBox", "0 0 100 120");
+            element.setAttribute("class", "knob");
 
             let back = document.createElementNS(NS, "circle");
             back.setAttributeNS(null, "cx", "50");
@@ -464,15 +474,10 @@
             labelText.textContent = config.label;
             element.appendChild(labelText);
 
-            let p = getPath(polarAngle);     // TODO: value to arc
-
             let path = document.createElementNS(NS, "path");
-            path.setAttributeNS(null, "d", p);
+            path.setAttributeNS(null, "d", getPath(polarAngle));
             path.setAttribute("class", "arc");
 
-            element.setAttributeNS("http://www.w3.org/2000/xmlns/", "xmlns:xlink", "http://www.w3.org/1999/xlink");
-            element.setAttributeNS(null, "viewBox", "0 0 100 120");
-            element.setAttribute("class", "knob");
             element.appendChild(path);
 
         }  // draw()
@@ -485,8 +490,10 @@
             //TODO: setValue()
             // currentTarget.childNodes[1].textContent = polarToKnobAngle(getPolarAngle()).toFixed(0);
             // currentTarget.childNodes[2].textContent = getValue().toFixed(3);
-            currentTarget.childNodes[1].textContent = getValue().toFixed(2);
-            currentTarget.childNodes[3].setAttributeNS(null, "d", getPath(getPolarAngle()));
+            // currentTarget.childNodes[1].textContent = getValue().toFixed(2);
+            // currentTarget.childNodes[3].setAttributeNS(null, "d", getPath(getPolarAngle()));
+            element.childNodes[1].textContent = getValue().toFixed(2);
+            element.childNodes[3].setAttributeNS(null, "d", getPath(getPolarAngle()));
         }
 
         function attachEventHandlers() {
@@ -507,12 +514,14 @@
         }
 
         return {
+            // 'setValue': setValue //TODO rename
             // get value() {
             //     return value;
             // },
-            // set value(v) {
-            //     value = v;
-            // }
+            set value(v) {
+                changeValue(v);
+                redraw();
+            }
         };
 
     });
