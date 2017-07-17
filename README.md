@@ -6,3 +6,7 @@ Web UI components for building synthesizer and midi tools and applications
 
 - Modularize (if possible, wait for ES6 support in Chrome and Firefox)
     - Module name could be "SynthUI".
+    
+- TODO:
+    - "smart" features
+    - make the label zone optional
