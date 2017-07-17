@@ -1,15 +1,26 @@
 <!doctype html>
 <html>
 <head>
-    <script src="../src/knob.js"></script>
+    <script src="../src/knob.js?123"></script>
     <style>
         body {
-            padding: 0;
-            margin: 40px 20px;
+            background-color: #eee;
         }
+        #main {
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+        }
+
+        #main > div {
+            /*width: 20vw;*/
+            background-color: #fff;
+            margin: 10px;
+        }
+
         .knob {
             height: 40vh;   /* 20% of viewport height */
-            background-color: #ccc;
+            /*background-color: #ccc;*/
             display: block;
         }
         .knob text {
@@ -22,9 +33,10 @@
             text-anchor: middle;
         }
         .arc {
-            stroke: black;
-            stroke-width: 4px;
+            /*stroke: black;*/
+            stroke-width: 5%;
             fill: transparent;
+            /*stroke-linecap: round;*/
         }
         .back {
             stroke: #aaa;
@@ -37,27 +49,43 @@
         }
         #knob2 text.value {
             font-family: sans-serif;
-            font-size: 175%;
+            font-size: 200%;
+            baseline-shift: -20%;   /* use this property to correct the text vertical position */
             font-weight: bold;
             cursor: default;
-            z-index: 1;
-            baseline-shift: -18%;   /* use this property to correct the text vertical position */
+            /*z-index: 1;*/
         }
     </style>
 </head>
 <body>
-<div>
-    <svg class="knob" id="knob1" data-config='{"label": "Foo"}' data-label="Title"></svg>
-    <svg class="knob" id="knob2" data-config='{"arc_min": 0, "value_max":127}' data-label="Bar"></svg>
-    <!--<div class="knob-menu" id="knob1-menu"></div>-->
-    <input type="text" id="i" /><button id="b">set value on knob 1</button>
-    <div>
-        knob 1 value: <span id="v-knob1"></span>
+    <div id="main">
+        <div>
+            <svg class="knob" id="knob1" data-label="default"></svg>
+            <!--<div class="knob-menu" id="knob1-menu"></div>-->
+            <input type="text" id="i" /><button id="b">set value on knob 1</button>
+            <div>
+                knob 1 value: <span id="v-knob1"></span>
+            </div>
+        </div>
+        <div>
+            <svg class="knob" id="knob2" data-config='{"arc_min": 20, "value_max":127}' data-label="Large font"></svg>
+            <div>
+                knob 2 value: <span id="v-knob2"></span>
+            </div>
+        </div>
+        <div>
+            <svg class="knob" id="knob3" data-config='{"arc_min": 0, "value_max":127}' data-label="Dot cursor"></svg>
+        </div>
+        <div>
+            <svg class="knob" id="knob4" data-config='{"arc_min": 0, "value_max":127}' data-label=""></svg>
+        </div>
+        <div>
+            <svg class="knob" id="knob5" data-config='{"arc_min": 0, "value_max":127}' data-label=""></svg>
+        </div>
+        <div>
+            <svg class="knob" id="knob6" data-config='{"with_label": false, "arc_min": 0, "value_max":127}'></svg>
+        </div>
     </div>
-    <div>
-        knob 2 value: <span id="v-knob2"></span>
-    </div>
-</div>
 </body>
 <script type="text/javascript">
 

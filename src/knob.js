@@ -24,12 +24,16 @@
             // user configurable
             // no camelCase because we want to be able to have the same name in data- attributes.
             label: default_label,
+            with_label: true,
             zero_at: 270.0,      // the 0 degree will be at 270 polar degrees (6 o'clock).
             arc_min: 30.0,          // Angle in knob coordinates (0 at 6 0'clock)
             arc_max: 330.0,         // Angle in knob coordinates (0 at 6 0'clock)
-            cursor_start: 20,            // 20% of radius
-            cursor_end: 30,            // 20% of radius
+            cursor_start: 0,            // 20% of radius
+            cursor_end: 0,            // 20% of radius
+            cursor_dot_position: 0,         // % of radius (try 80)
+            cursor_dot_size: 0,         // % of radius (try 10)
             cursor_only: false,  //TODO
+            cursor_width: 0,    // only when cursor_only is true
             rotation: CW,
             default_value: 0,
             value_min: 0.0,
@@ -301,6 +305,26 @@
             return path;
         }
 
+        /**
+         * angle is in degrees (polar, 0 at 3 o'clock)
+         */
+        function getDotCursor(endAngle) {
+
+            let a_rad = endAngle * Math.PI / 180.0;
+
+            // if (config.cursor_dot > 0) {
+                let dot_position = RADIUS * (config.cursor_dot_position / 100.0);  // cursor is in percents
+                let x = getViewboxX(Math.cos(a_rad) * dot_position);
+                let y = getViewboxY(Math.sin(a_rad) * dot_position);
+                let r = RADIUS * (config.cursor_dot_size / 100.0);
+            // }
+
+            return {
+                cx: x,
+                cy: y,
+                r: r
+            };
+        }
 
         /**
          * startDrag() must have been called before to init the targetRect variable.
@@ -450,7 +474,7 @@
             // ==> first element -> "painted" first
 
             element.setAttributeNS("http://www.w3.org/2000/xmlns/", "xmlns:xlink", "http://www.w3.org/1999/xlink");
-            element.setAttributeNS(null, "viewBox", "0 0 100 120");
+            element.setAttributeNS(null, "viewBox", config.with_label ? "0 0 100 120" : "0 0 100 100");
             element.setAttribute("class", "knob");
 
             let back = document.createElementNS(NS, "circle");
@@ -467,18 +491,30 @@
             valueText.textContent = getValue().toFixed(2);
             element.appendChild(valueText);
 
-            let labelText = document.createElementNS(NS, "text");
-            labelText.setAttributeNS(null, "x", "50");
-            labelText.setAttributeNS(null, "y", "110");
-            labelText.setAttribute("class", "label");
-            labelText.textContent = config.label;
-            element.appendChild(labelText);
-
             let path = document.createElementNS(NS, "path");
             path.setAttributeNS(null, "d", getPath(polarAngle));
+            path.setAttribute("stroke", "blue");
             path.setAttribute("class", "arc");
-
             element.appendChild(path);
+
+            if (config.cursor_dot_size > 0) {
+                let d = getDotCursor(polarAngle);
+                let dot = document.createElementNS(NS, "circle");
+                dot.setAttributeNS(null, "cx", d.cx);
+                dot.setAttributeNS(null, "cy", d.cy);
+                dot.setAttributeNS(null, "r", d.r);
+                // path.setAttribute("class", "arc");
+                element.appendChild(dot);
+            }
+
+            if (config.with_label) {
+                let labelText = document.createElementNS(NS, "text");
+                labelText.setAttributeNS(null, "x", "50");
+                labelText.setAttributeNS(null, "y", "110");
+                labelText.setAttribute("class", "label");
+                labelText.textContent = config.label;
+                element.appendChild(labelText);
+            }
 
         }  // draw()
 
@@ -492,8 +528,15 @@
             // currentTarget.childNodes[2].textContent = getValue().toFixed(3);
             // currentTarget.childNodes[1].textContent = getValue().toFixed(2);
             // currentTarget.childNodes[3].setAttributeNS(null, "d", getPath(getPolarAngle()));
-            element.childNodes[1].textContent = getValue().toFixed(2);
-            element.childNodes[3].setAttributeNS(null, "d", getPath(getPolarAngle()));
+
+            element.childNodes[1].textContent = getValue(); //.toFixed(2);
+            element.childNodes[2].setAttributeNS(null, "d", getPath(getPolarAngle()));
+
+            if (config.cursor_dot_size > 0) {
+                let d = getDotCursor(getPolarAngle());
+                element.childNodes[3].setAttributeNS(null, "cx", d.cx);
+                element.childNodes[3].setAttributeNS(null, "cy", d.cy);
+            }
         }
 
         function attachEventHandlers() {
