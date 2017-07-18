@@ -16,6 +16,7 @@
             /*width: 20vw;*/
             background-color: #fff;
             margin: 10px;
+            border: 1px solid #999;
         }
 
         .knob {
@@ -23,6 +24,7 @@
             /*background-color: #ccc;*/
             display: block;
         }
+/*
         .knob text {
             font-family: sans-serif;
             font-size: 100%;
@@ -32,12 +34,14 @@
         text.value, text.label {
             text-anchor: middle;
         }
+*/
         .arc {
             /*stroke: black;*/
-            stroke-width: 5%;
+            /*stroke-width: 5%;*/
             fill: transparent;
             /*stroke-linecap: round;*/
         }
+/*
         .back {
             stroke: #aaa;
             stroke-width: 6px;
@@ -47,6 +51,7 @@
             stroke: #aaa;
             stroke-width: 1px;
         }
+*/
         #knob2 text.value {
             font-family: sans-serif;
             font-size: 200%;
@@ -62,7 +67,7 @@
         <div>
             <svg class="knob" id="knob1" data-label="default"></svg>
             <!--<div class="knob-menu" id="knob1-menu"></div>-->
-            <input type="text" id="i" /><button id="b">set value on knob 1</button>
+            <input type="text" id="i" size="3"/><button id="b">set value</button>
             <div>
                 knob 1 value: <span id="v-knob1"></span>
             </div>
