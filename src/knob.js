@@ -30,10 +30,13 @@
             arc_max: 330.0,         // Angle in knob coordinates (0 at 6 0'clock)
             cursor_start: 0,            // 20% of radius
             cursor_end: 0,            // 20% of radius
-            cursor_dot_position: 0,         // % of radius (try 80)
+            cursor_dot_position: 75,         // % of radius (try 80), ignored when cursor_dot_size <= 0
             cursor_dot_size: 0,         // % of radius (try 10)
             cursor_only: false,  //TODO
             cursor_width: 0,    // only when cursor_only is true
+            back_stroke_width: 10,   // 10% of radius
+            arc_stroke_width: 10,   // 10% of radius
+            radius: 40,
             rotation: CW,
             default_value: 0,
             value_min: 0.0,
@@ -50,7 +53,7 @@
 
         const HALF_WIDTH = 50;      // viewBox/2
         const HALF_HEIGHT = 50;     // viewBox/2
-        const RADIUS = 40;          // a bit less than viewBox/2 to have a margin outside the arc. Must also takes into account the width of the arc stroke.
+        // const RADIUS = 40;          // a bit less than viewBox/2 to have a margin outside the arc. Must also takes into account the width of the arc stroke.
 
         // mouse drag support
         // var currentTarget;  //TODO: could be replaced by element ?
@@ -92,15 +95,15 @@
             // compute initial viewBox coordinates (independent from browser resizing):
 
             let angle_rad = getPolarAngle() * Math.PI / 180.0;
-            arcStartX = getViewboxX(Math.cos(angle_rad) * RADIUS);
-            arcStartY = getViewboxY(Math.sin(angle_rad) * RADIUS);
+            arcStartX = getViewboxX(Math.cos(angle_rad) * config.radius);
+            arcStartY = getViewboxY(Math.sin(angle_rad) * config.radius);
 
             if (config.cursor_only) {
                 // TODO
             }
 
             if (config.cursor_start > 0) {
-                let cursorLength = RADIUS * ((100.0 - config.cursor_start) / 100.0);  // cursor is in percents
+                let cursorLength = config.radius * ((100.0 - config.cursor_start) / 100.0);  // cursor is in percents
                 let cursor_endX = getViewboxX(Math.cos(angle_rad) * cursorLength);
                 let cursor_endY = getViewboxY(Math.sin(angle_rad) * cursorLength);
                 path_start = `M ${cursor_endX},${cursor_endY} L`;
@@ -108,7 +111,7 @@
                 path_start = 'M';
             }
 
-            path_start += `${arcStartX},${arcStartY} A ${RADIUS},${RADIUS}`;
+            path_start += `${arcStartX},${arcStartY} A ${config.radius},${config.radius}`;
 
             mouseWheelDirection = _isMacOS() ? -1 : 1;
 
@@ -207,10 +210,10 @@
             let a_rad = endAngle * Math.PI / 180.0;
 
             // if (config.cursor_dot > 0) {
-                let dot_position = RADIUS * (config.cursor_dot_position / 100.0);  // cursor is in percents
+                let dot_position = config.radius * config.cursor_dot_position / 100.0;  // cursor is in percents
                 let x = getViewboxX(Math.cos(a_rad) * dot_position);
                 let y = getViewboxY(Math.sin(a_rad) * dot_position);
-                let r = RADIUS * (config.cursor_dot_size / 100.0);
+                let r = config.radius * config.cursor_dot_size / 2 / 100.0;
             // }
 
             return {
@@ -231,8 +234,8 @@
             console.log(`getPath from ${minAngle} to ${endAngle}`);     // 240 330; 240-330=-90 + 360=270
 
             let a_rad = endAngle * Math.PI / 180.0;
-            let endX = getViewboxX(Math.cos(a_rad) * RADIUS);
-            let endY = getViewboxY(Math.sin(a_rad) * RADIUS);
+            let endX = getViewboxX(Math.cos(a_rad) * config.radius);
+            let endY = getViewboxY(Math.sin(a_rad) * config.radius);
 
             let deltaAngle = (minAngle - endAngle + 360.0) % 360.0;
             let largeArc = deltaAngle < 180.0 ? 0 : 1;
@@ -248,7 +251,7 @@
             let path = path_start + ` 0 ${largeArc},${arcDirection} ${endX},${endY}`;
 
             if (config.cursor_end > 0) {
-                let cursorLength = RADIUS * ((100.0 - config.cursor_end) / 100.0);  // cursor is in percents
+                let cursorLength = config.radius * ((100.0 - config.cursor_end) / 100.0);  // cursor is in percents
                 let cursor_endX = getViewboxX(Math.cos(a_rad) * cursorLength);
                 let cursor_endY = getViewboxY(Math.sin(a_rad) * cursorLength);
                 path += ` L ${cursor_endX},${cursor_endY}`;
@@ -270,7 +273,7 @@
 
             element.setAttributeNS("http://www.w3.org/2000/xmlns/", "xmlns:xlink", "http://www.w3.org/1999/xlink");
             element.setAttributeNS(null, "viewBox", config.with_label ? "0 0 100 120" : "0 0 100 100");
-            element.setAttribute("class", "knob");
+            // element.setAttribute("class", "knob");
 
             // let back = document.createElementNS(NS, "circle");
             // back.setAttributeNS(null, "cx", "50");
@@ -282,7 +285,7 @@
             let back = document.createElementNS(NS, "path");
             back.setAttributeNS(null, "d", getPath(maxAngle));
             back.setAttribute("stroke", "#ddd");
-            back.setAttribute("stroke-width", "10%");
+            back.setAttribute("stroke-width", "" + config.back_stroke_width * config.radius / 100);
             back.setAttribute("fill", "transparent");
             back.setAttribute("class", "back");
             element.appendChild(back);
@@ -291,6 +294,7 @@
             valueText.setAttributeNS(null, "x", "50");
             valueText.setAttributeNS(null, "y", "55");
             valueText.setAttribute("text-anchor", "middle");
+            valueText.setAttribute("cursor", "default");
             valueText.setAttribute("class", "value");
             valueText.textContent = getValue().toFixed(2);
             element.appendChild(valueText);
@@ -298,7 +302,7 @@
             let path = document.createElementNS(NS, "path");
             path.setAttributeNS(null, "d", getPath(getPolarAngle()));
             path.setAttribute("stroke", "#666");
-            path.setAttribute("stroke-width", "10%");
+            path.setAttribute("stroke-width", "" + config.arc_stroke_width * config.radius / 100);
             path.setAttribute("fill", "transparent");
             path.setAttribute("class", "arc");
             element.appendChild(path);
@@ -318,6 +322,7 @@
                 labelText.setAttributeNS(null, "x", "50");
                 labelText.setAttributeNS(null, "y", "110");
                 labelText.setAttribute("text-anchor", "middle");
+                valueText.setAttribute("cursor", "default");
                 labelText.setAttribute("class", "label");
                 labelText.textContent = config.label;
                 element.appendChild(labelText);
@@ -376,7 +381,7 @@
             setPolarAngle(angle_rad * 180.0 / Math.PI);     // rads to degs
 
             // distance from arc center to mouse position
-            distance = Math.sqrt(dx*(HALF_WIDTH/RADIUS)*dx*(HALF_WIDTH/RADIUS) + dy*(HALF_HEIGHT/RADIUS)*dy*(HALF_HEIGHT/RADIUS));
+            distance = Math.sqrt(dx*(HALF_WIDTH/config.radius)*dx*(HALF_WIDTH/config.radius) + dy*(HALF_HEIGHT/config.radius)*dy*(HALF_HEIGHT/config.radius));
 
         }
 

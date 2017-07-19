@@ -10,3 +10,4 @@ Web UI components for building synthesizer and midi tools and applications
 - TODO:
     - "smart" features
     - make the label zone optional
+    - use speech API to annouce a change of the value
