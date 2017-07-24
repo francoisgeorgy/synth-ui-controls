@@ -34,8 +34,10 @@
             cursor_dot_size: 0,         // % of radius (try 10)
             cursor_only: false,  //TODO
             cursor_width: 0,    // only when cursor_only is true
-            back_stroke_width: 10,   // 10% of radius
-            arc_stroke_width: 10,   // 10% of radius
+            back_width: 20,   // 10% of radius
+            back_color: '#ddd',
+            arc_width: 20,   // 10% of radius
+            arc_color: '#666',
             radius: 40,
             rotation: CW,
             default_value: 0,
@@ -284,8 +286,8 @@
 
             let back = document.createElementNS(NS, "path");
             back.setAttributeNS(null, "d", getPath(maxAngle));
-            back.setAttribute("stroke", "#ddd");
-            back.setAttribute("stroke-width", "" + config.back_stroke_width * config.radius / 100);
+            back.setAttribute("stroke", config.back_color);
+            back.setAttribute("stroke-width", "" + config.back_width * config.radius / 100);
             back.setAttribute("fill", "transparent");
             back.setAttribute("class", "back");
             element.appendChild(back);
@@ -301,8 +303,8 @@
 
             let path = document.createElementNS(NS, "path");
             path.setAttributeNS(null, "d", getPath(getPolarAngle()));
-            path.setAttribute("stroke", "#666");
-            path.setAttribute("stroke-width", "" + config.arc_stroke_width * config.radius / 100);
+            path.setAttribute("stroke", config.arc_color);
+            path.setAttribute("stroke-width", "" + config.arc_width * config.radius / 100);
             path.setAttribute("fill", "transparent");
             path.setAttribute("class", "arc");
             element.appendChild(path);

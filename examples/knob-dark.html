@@ -1,0 +1,91 @@
+<!doctype html>
+<html>
+<head>
+    <link href="https://fonts.googleapis.com/css?family=Roboto|Roboto+Condensed:400,700" rel="stylesheet">
+    <script src="../src/knob.js?1rf234"></script>
+    <style>
+        body {
+            background-color: #000;
+            color: #fff;
+            font-family: 'Roboto', sans-serif;
+        }
+        #main {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+        }
+
+        #main > div {
+            /*width: 20vw;*/
+            /*background-color: #fff;*/
+            /*margin: 10px;*/
+            /*border: 1px solid #999;*/
+            /*text-align: center;*/
+            /*border-radius: 2%;*/
+            /*padding: 0 0 4% 0;*/
+        }
+
+        .knob {
+            height: 12vh;   /* 20% of viewport height */
+            /*background-color: #ffffff;*/
+            /*border: 1px solid #aaa;*/
+        }
+
+
+        #knob1 {
+        }
+
+        #knob1 .back {
+            stroke: #555;
+        }
+        #knob1 .arc {
+            stroke: #fff;
+        }
+        #knob1 .value {
+            font-family: 'Roboto Condensed', sans-serif;
+            font-size: 120%;
+            stroke: #fff;
+            fill: #fff;
+        }
+        #knob1 .label {
+            /*font-family: sans-serif;*/
+            /*font-size: 120%;*/
+            stroke: #fff;
+            fill: #fff;
+        }
+
+    </style>
+</head>
+<body>
+    <div id="main">
+        <div>
+            <svg class="knob" id="knob1" data-label="default" data-config='{"back_width":20,"arc_width":20}'></svg>
+        </div>
+    </div>
+</body>
+<script type="text/javascript">
+
+    document.addEventListener("DOMContentLoaded", function(event) {
+        console.log('DOMContentLoaded');
+
+        var my_knobs = {};
+
+        var knobs = document.querySelectorAll('svg.knob');
+        [].forEach.call(knobs, function(element) {
+            my_knobs[element.id] = new knob(element, {arcMin:45});
+            element.addEventListener("change", function(event) {
+                document.getElementById('v-' + element.id).innerHTML = event.detail;
+            });
+        });
+
+        var i7 = document.getElementById('i7');
+        i7.addEventListener("change", function(event) {
+            let v = parseFloat(this.value);
+            if (!isNaN(v)) {
+                my_knobs['knob7'].value = v;
+            }
+        });
+
+    });
+
+</script>
+</html>
