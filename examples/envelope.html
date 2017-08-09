@@ -1,0 +1,105 @@
+<!doctype html>
+<html>
+<head>
+    <script src="../src/envelope.js?1rf234"></script>
+    <style>
+        body {
+            background-color: #ddd;
+            /*background: linear-gradient(316deg, rgba(255,0,0,1) 0%, rgba(0,0,0,1) 75%, rgba(0,0,0,1) 100%);*/
+        }
+        #main {
+            /*display: flex;*/
+            /*flex-direction: row;*/
+            /*flex-wrap: wrap;*/
+            /*align-items: flex-start;*/
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+        }
+
+        #main > div {
+            /*width: 20vw;*/
+            background-color: #fff;
+            margin: 10px;
+            border: 1px solid #999;
+            text-align: center;
+            border-radius: 2%;
+            padding: 0 0 4% 0;
+        }
+
+        #main > div > div:nth-child(1) {
+            font-family: sans-serif;
+            margin-bottom: 0.5em;
+            padding: 0.5em 0;
+            /*border-bottom: 1px solid black;*/
+        }
+
+        #main > div > div:nth-child(3) {
+            font-family: sans-serif;
+            padding: 0.5em 0;
+            font-size: 85%;
+        }
+
+        div.config {
+            font-family: monospace;
+        }
+
+        .envelope {
+            height: 20vh;   /* 20% of viewport height */
+            width: 20vw;
+            background-color: #ffffff;
+            border: 1px solid #aaa;
+        }
+
+
+    </style>
+</head>
+<body>
+    <div id="main">
+        <div>
+            <div>
+                Default, height=20vh
+            </div>
+            <svg class="envelope" id="envelope1" data-label="default"></svg>
+            <!--<div class="envelope-menu" id="envelope1-menu"></div>-->
+            <div>
+                <div class="config">
+                    <script>document.write(document.getElementById("envelope1").dataset.config || '')</script>
+                </div>
+            </div>
+        </div>
+        <div>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" height="100px" width="300px" preserveAspectRatio="none" style="background-color: #aaaaaa">
+                <!--<path fill="transparent" stroke="#000" stroke-width="1" d="M0,100L25,0L50,75L75,75L100,100"/>-->
+                <path fill="transparent" stroke="#000" stroke-width="1" d="M0,100L25,0L50,50L75,50L100,100"/>
+
+            </svg>
+        </div>
+    </div>
+</body>
+<script type="text/javascript">
+
+    document.addEventListener("DOMContentLoaded", function(event) {
+        console.log('DOMContentLoaded');
+
+        var my_envelopes = {};
+
+        var envelopes = document.querySelectorAll('svg.envelope');
+        [].forEach.call(envelopes, function(element) {
+            my_envelopes[element.id] = new envelope(element, {});
+//            element.addEventListener("change", function(event) {
+//                document.getElementById('v-' + element.id).innerHTML = event.detail;
+//            });
+        });
+
+//        var i7 = document.getElementById('i7');
+//        i7.addEventListener("change", function(event) {
+//            let v = parseFloat(this.value);
+//            if (!isNaN(v)) {
+//                my_envelopes['envelope7'].value = v;
+//            }
+//        });
+
+    });
+
+</script>
+</html>
