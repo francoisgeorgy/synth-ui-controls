@@ -40,8 +40,8 @@
             value_min: 0.0,
             value_max: 100.0,
             value_resolution: 1,      // null means ignore
-            snapToSteps: false,        // TODO
-            valueFormating: null      // TODO; callback function
+            snap_to_steps: false,        // TODO
+            value_formatting: null      // TODO; callback function
         };
 
         let data_config = JSON.parse(element.dataset.config || '{}');
@@ -80,21 +80,20 @@
 
         function init() {
 
-            console.log('INIT');
-
+            console.group('INIT');
 
             // compute min and max angles:
             minAngle = knobToPolarAngle(config.arc_min);
             maxAngle = knobToPolarAngle(config.arc_max);
 
-            // set initial angle:
-            setValue(config.default_value);
-
             // compute initial viewBox coordinates (independent from browser resizing):
-
-            let angle_rad = getPolarAngle() * Math.PI / 180.0;
+            // setValue(config.value_min);
+            let angle_rad = minAngle * Math.PI / 180.0;
             arcStartX = getViewboxX(Math.cos(angle_rad) * config.radius);
             arcStartY = getViewboxY(Math.sin(angle_rad) * config.radius);
+
+            // set initial angle:
+            setValue(config.default_value);
 
             if (config.cursor_only) {
                 // TODO
@@ -111,7 +110,11 @@
 
             path_start += `${arcStartX},${arcStartY} A ${config.radius},${config.radius}`;
 
+            console.log(`path_start = ${path_start}`);
+
             mouseWheelDirection = _isMacOS() ? -1 : 1;
+
+            console.groupEnd();
 
         }
 
@@ -125,6 +128,7 @@
         }
 
         function setValue(v) {
+            console.log(`setValue(${v})`);
             value = v;
             let a = ((v - config.value_min) / (config.value_max - config.value_min)) * (config.arc_max - config.arc_min) + config.arc_min;
             console.log(`changeValue(${v}) --> angle ${a}`);
@@ -135,6 +139,8 @@
          * Angle in degrees in polar coordinates (0 degrees at 3 o'clock)
          */
         function setPolarAngle(angle) {
+
+            console.log(`setPolarAngle(${angle})`);
 
             let previous = polarAngle;
 
@@ -164,6 +170,7 @@
          * Angle in degrees in polar coordinates (0 degrees at 3 o'clock)
          */
         function getPolarAngle() {
+            console.log(`return polarAngle ${polarAngle}`);
             return polarAngle;
         }
 

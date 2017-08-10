@@ -1,7 +1,7 @@
 <!doctype html>
 <html>
 <head>
-    <script src="../src/knob.js?1rf234"></script>
+    <script src="../src/knob.js?kc34"></script>
     <style>
         body {
             background-color: #ddd;
@@ -140,7 +140,7 @@
             <div>
                 Default
             </div>
-            <svg class="knob" id="knob2" data-config='{"value_max":127}' data-label="Large font"></svg>
+            <svg class="knob" id="knob2" data-config='{"default_value": 50, "value_max":127}' data-label="Large font"></svg>
             <div>
                 <div class="config">
                     <script>document.write(document.getElementById("knob2").dataset.config || '')</script>
@@ -161,7 +161,7 @@
             <div>
                 Default
             </div>
-            <svg class="knob" id="knob3" data-config='{"arc_min": 45, "arc_max": 315, "radius": 30, "value_max":127}' data-label="Label"></svg>
+            <svg class="knob" id="knob3" data-config='{"default_value":50, "arc_min": 45, "arc_max": 315, "radius": 30, "value_max":127}' data-label="Label"></svg>
             <div>
                 <div class="config">
                     <script>document.write(document.getElementById("knob3").dataset.config || '')</script>
@@ -230,6 +230,14 @@
 
         var my_knobs = {};
 
+        var k1 = new knob(document.getElementById('knob1'), {
+            cursor_dot_size: 10
+        });
+//        var k2 = new knob(document.getElementById('knob2'));
+
+        k1.value = 50;
+
+        /*
         var knobs = document.querySelectorAll('svg.knob');
         [].forEach.call(knobs, function(element) {
             my_knobs[element.id] = new knob(element, {arcMin:45});
@@ -245,6 +253,7 @@
                 my_knobs['knob7'].value = v;
             }
         });
+        */
 
     });
 
