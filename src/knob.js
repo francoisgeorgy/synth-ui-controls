@@ -295,6 +295,18 @@
             back.setAttribute("class", "back");
             element.appendChild(back);
 
+            // let bg_radius = config.radius + (config.arc_width * config.radius / 100) / 2;
+            let bg_radius = config.radius - (config.arc_width * config.radius / 100) / 2;
+            let bg = document.createElementNS(NS, "circle");
+            bg.setAttributeNS(null, "cx", 50);
+            bg.setAttributeNS(null, "cy", 50);
+            bg.setAttributeNS(null, "r", `${bg_radius}`);
+            bg.setAttribute("stroke", "transparent");
+            bg.setAttribute("stroke-width", "0");
+            bg.setAttribute("fill", "transparent");
+            bg.setAttribute("class", "knob-bg");
+            element.appendChild(bg);
+
             let valueText = document.createElementNS(NS, "text");
             valueText.setAttributeNS(null, "x", "50");
             valueText.setAttributeNS(null, "y", "55");
@@ -340,13 +352,13 @@
          */
         function redraw() {
 
-            element.childNodes[1].textContent = getValue(); //.toFixed(2);
-            element.childNodes[2].setAttributeNS(null, "d", getPath(getPolarAngle()));
+            element.childNodes[2].textContent = getValue(); //.toFixed(2);
+            element.childNodes[3].setAttributeNS(null, "d", getPath(getPolarAngle()));
 
             if (config.cursor_dot_size > 0) {
                 let d = getDotCursor(getPolarAngle());
-                element.childNodes[3].setAttributeNS(null, "cx", d.cx);
-                element.childNodes[3].setAttributeNS(null, "cy", d.cy);
+                element.childNodes[4].setAttributeNS(null, "cx", d.cx);
+                element.childNodes[4].setAttributeNS(null, "cy", d.cy);
             }
         }
 
