@@ -16,10 +16,6 @@
         // If another label is set in data-config then this later definition will override data-label.
         let default_label = element.dataset.label !== undefined ? element.dataset.label : '';
 
-        // For the user convenience, the label can be set with the "data-label" attribute.
-        // If another label is set in data-config then this later definition will override data-label.
-        let default_value = element.dataset.value !== undefined ? element.dataset.value : 0;
-
         let defaults = {
             // user configurable
             // no camelCase because we want to be able to have the same name in data- attributes.
