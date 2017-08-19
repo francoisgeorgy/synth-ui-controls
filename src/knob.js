@@ -24,24 +24,46 @@
             zero_at: 270.0,      // the 0 degree will be at 270 polar degrees (6 o'clock).
             arc_min: 30.0,          // Angle in knob coordinates (0 at 6 0'clock)
             arc_max: 330.0,         // Angle in knob coordinates (0 at 6 0'clock)
+            cursor: 0,            // 20% of radius
             cursor_start: 0,            // 20% of radius
             cursor_end: 0,            // 20% of radius
             cursor_dot_position: 75,         // % of radius (try 80), ignored when cursor_dot_size <= 0
             cursor_dot_size: 0,         // % of radius (try 10)
             cursor_only: false,  //TODO
             cursor_width: 0,    // only when cursor_only is true
-            back_width: 20,   // 10% of radius
-            back_color: '#ddd',
+
+            // back disk:
+            back_radius: 32,
+            back_border_width: 1,
+            back_border_color: '#888',
+            back_color: '#333',
+
+            // back path:
+            back_path_radius: 40,   //TODO: rename path to track
+            back_path_width: 8,
+            back_path_color: '#555',
+
+            // value path:
+            path_radius: 40,
+            path_width: 8,
+            path_color: '#bbb',
+
             arc_width: 20,   // 10% of radius
             arc_color: '#666',
             radius: 40,
             rotation: CW,
             default_value: 0,
-            value_min: 0.0,
-            value_max: 100.0,
-            value_resolution: 1,      // null means ignore
+
+            center_zero: false,
+
+            value_min: 0.0,         // TODO: rename to min
+            value_max: 100.0,       // TODO: rename to max
+            value_resolution: 1,      // null means ignore  // TODO: rename to step
             snap_to_steps: false,        // TODO
-            value_formatting: null      // TODO; callback function
+            value_formatting: null,      // TODO; callback function
+            format: function(v) {
+                return v;
+            }
         };
 
         let data_config = JSON.parse(element.dataset.config || '{}');
@@ -87,7 +109,7 @@
             maxAngle = knobToPolarAngle(config.arc_max);
 
             // compute initial viewBox coordinates (independent from browser resizing):
-            // setValue(config.value_min);
+
             let angle_rad = minAngle * Math.PI / 180.0;
             arcStartX = getViewboxX(Math.cos(angle_rad) * config.radius);
             arcStartY = getViewboxY(Math.sin(angle_rad) * config.radius);
@@ -116,6 +138,11 @@
 
             console.groupEnd();
 
+        }
+
+        function getDisplayValue(polar) {
+            let v = getValue(polar);
+            return config.format(v);
         }
 
         function getValue(polar) {
@@ -231,7 +258,7 @@
         /**
          * angle is in degrees (polar, 0 at 3 o'clock)
          */
-        function getPath(endAngle) {
+        function getPath(endAngle, withEndCursor) {
 
             // SVG d: "A rx,ry xAxisRotate LargeArcFlag,SweepFlag x,y".
             // SweepFlag is either 0 or 1, and determines if the arc should be swept in a clockwise (1), or anti-clockwise (0) direction
@@ -249,17 +276,27 @@
 
             let arcDirection = config.rotation === CW ? 1 : 0;
 
+            let path;
             if (config.cursor_only) {
-                // TODO
+                path = ` M${endX},${endY}`;
+            } else {
+                path = path_start + ` 0 ${largeArc},${arcDirection} ${endX},${endY}`;
             }
 
-            let path = path_start + ` 0 ${largeArc},${arcDirection} ${endX},${endY}`;
-
-            if (config.cursor_end > 0) {
-                let cursorLength = config.radius * ((100.0 - config.cursor_end) / 100.0);  // cursor is in percents
-                let cursor_endX = getViewboxX(Math.cos(a_rad) * cursorLength);
-                let cursor_endY = getViewboxY(Math.sin(a_rad) * cursorLength);
-                path += ` L ${cursor_endX},${cursor_endY}`;
+            if (withEndCursor) {
+                if (config.cursor_end > 0) {
+                    let cursorLength = config.radius * ((100.0 - config.cursor_end) / 100.0);  // cursor is in percents
+                    let cursor_endX = getViewboxX(Math.cos(a_rad) * cursorLength);
+                    let cursor_endY = getViewboxY(Math.sin(a_rad) * cursorLength);
+                    path += ` L ${cursor_endX},${cursor_endY}`;
+                }
+            } else {
+                if (config.cursor > 0) {
+                    let cursorLength = config.radius * ((100.0 - config.cursor) / 100.0);  // cursor is in percents
+                    let cursor_endX = getViewboxX(Math.cos(a_rad) * cursorLength);
+                    let cursor_endY = getViewboxY(Math.sin(a_rad) * cursorLength);
+                    path += ` L ${cursor_endX},${cursor_endY}`;
+                }
             }
 
             console.log(path);
@@ -267,7 +304,135 @@
             return path;
         }
 
+        /**
+         *
+         * @param fromAngle
+         * @param toAngle in radian (polar, 0 at 3 o'clock)
+         * @param radius in radian (polar, 0 at 3 o'clock)
+         */
+        function getArc(fromAngle, toAngle, radius) {
+
+            console.log(`getArc(${fromAngle}, ${toAngle}, ${radius})`);
+
+            // SVG d: "A rx,ry xAxisRotate LargeArcFlag,SweepFlag x,y".
+            // SweepFlag is either 0 or 1, and determines if the arc should be swept in a clockwise (1), or anti-clockwise (0) direction
+
+            let x0 = getViewboxX(Math.cos(fromAngle) * radius);
+            let y0 = getViewboxY(Math.sin(fromAngle) * radius);
+
+            let x1 = getViewboxX(Math.cos(toAngle) * radius);
+            let y1 = getViewboxY(Math.sin(toAngle) * radius);
+
+            // let deltaAngle = (fromAngle - toAngle + 360.0) % 360.0;
+            let deltaAngle = (fromAngle - toAngle + 2 * Math.PI) % (2 * Math.PI);
+            // let largeArc = deltaAngle < 180.0 ? 0 : 1;
+            let largeArc = deltaAngle < Math.PI ? 0 : 1;
+            let arcDirection = config.rotation === CW ? 1 : 0;
+
+            let path = `M ${x0},${y0} A ${radius},${radius} 0 ${largeArc},${arcDirection} ${x1},${y1}`; //TODO: add terminator
+
+            console.log(path);
+
+            return path;
+        }
+
+        var parts_indexes = {};
+        var part_index = 0;
+
+        function draw_back() {
+
+            part_index = 0;
+
+            element.setAttributeNS("http://www.w3.org/2000/xmlns/", "xmlns:xlink", "http://www.w3.org/1999/xlink");
+            element.setAttributeNS(null, "viewBox", config.with_label ? "0 0 100 120" : "0 0 100 100");
+            // element.setAttribute("class", "knob");
+
+            let back_disk = document.createElementNS(NS, "circle");
+            back_disk.setAttributeNS(null, "cx", "50");
+            back_disk.setAttributeNS(null, "cy", "50");
+            back_disk.setAttributeNS(null, "r", `${config.back_radius}`);
+            back_disk.setAttribute("fill", `${config.back_color}`);
+            back_disk.setAttribute("stroke", `${config.back_border_color}`);
+            back_disk.setAttribute("stroke-width", `${config.back_border_width}`);
+            back_disk.setAttribute("stroke-linecap", "round");
+            back_disk.setAttribute("class", "knob-back");
+            element.appendChild(back_disk);
+
+            // parts_indexes['back_disk'] = part_index;
+            // part_index++;
+
+            if (config.center_zero) {
+
+                let aminus = Math.acos(-(config.back_path_width*1.5)/100.0);
+                let aplus = Math.acos((config.back_path_width*1.5)/100.0);
+                console.log(aminus*180.0/Math.PI);
+                console.log(aplus*180.0/Math.PI);
+// left
+//                 let ax = 50 + Math.cos(aminus) * config.back_path_radius;
+//                 let ay = 50 - Math.sin(aminus) * config.back_path_radius;
+// right
+//                 let bx = 50 + Math.cos(aplus) * config.back_path_radius;
+//                 let by = 50 - Math.sin(aplus) * config.back_path_radius;
+
+                let back_path_left = document.createElementNS(NS, "path");
+                back_path_left.setAttributeNS(null, "d", getArc(minAngle * Math.PI / 180.0, aminus, config.path_radius));
+                // back_path_left.setAttributeNS(null, "d", getPath(aminus*180.0/Math.PI, false));
+                back_path_left.setAttribute("stroke", `${config.back_path_color}`);
+                back_path_left.setAttribute("stroke-width", `${config.back_path_width}`);
+                back_path_left.setAttribute("stroke-linecap", "round");
+                back_path_left.setAttribute("fill", "transparent");
+                back_path_left.setAttribute("class", "knob-back-path");
+                element.appendChild(back_path_left);
+
+                let back_path_right = document.createElementNS(NS, "path");
+                back_path_right.setAttributeNS(null, "d", getArc(aplus, maxAngle * Math.PI / 180.0, config.path_radius));
+                // back_path_left.setAttributeNS(null, "d", getPath(aminus*180.0/Math.PI, false));
+                back_path_right.setAttribute("stroke", `${config.back_path_color}`);
+                back_path_right.setAttribute("stroke-width", `${config.back_path_width}`);
+                back_path_right.setAttribute("stroke-linecap", "round");
+                back_path_right.setAttribute("fill", "transparent");
+                back_path_right.setAttribute("class", "knob-back-path");
+                element.appendChild(back_path_right);
+
+            } else {
+
+                let back_path = document.createElementNS(NS, "path");
+                back_path.setAttributeNS(null, "d", getPath(maxAngle, true));
+                back_path.setAttribute("stroke", `${config.back_path_color}`);
+                back_path.setAttribute("stroke-width", `${config.back_path_width}`);
+                back_path.setAttribute("fill", "transparent");
+                back_path.setAttribute("stroke-linecap", "round");
+                back_path.setAttribute("class", "knob-back-path");
+                element.appendChild(back_path);
+
+                // parts_indexes['back_path'] = part_index;
+                // part_index++;
+            }
+
+        }
+
+        function draw_value() {
+            let path = document.createElementNS(NS, "path");
+            path.setAttributeNS(null, "d", getArc(Math.PI/2.0, maxAngle, config.path_radius));
+            path.setAttribute("stroke", `${config.path_color}`);
+            path.setAttribute("stroke-width", `${config.path_width}`);
+            path.setAttribute("fill", "transparent");
+            path.setAttribute("stroke-linecap", "round");
+            path.setAttribute("class", "knob-path");
+            element.appendChild(path);
+        }
+
+        function draw_cursor() {
+
+        }
+
         function draw() {
+            draw_back();
+            //draw_value();
+            //draw_cursor();
+        }
+
+        function Xdraw() {
 
             console.log('draw', element);
 
@@ -276,53 +441,15 @@
             // fragment getting "painted" first. Subsequent elements are painted on top of previously painted elements.
             // ==> first element -> "painted" first
 
-            element.setAttributeNS("http://www.w3.org/2000/xmlns/", "xmlns:xlink", "http://www.w3.org/1999/xlink");
-            element.setAttributeNS(null, "viewBox", config.with_label ? "0 0 100 120" : "0 0 100 100");
-            // element.setAttribute("class", "knob");
-
-            // let back = document.createElementNS(NS, "circle");
-            // back.setAttributeNS(null, "cx", "50");
-            // back.setAttributeNS(null, "cy", "50");
-            // back.setAttributeNS(null, "r", "40");
-            // back.setAttribute("class", "back");
-            // element.append(back);
-
-            let back = document.createElementNS(NS, "path");
-            back.setAttributeNS(null, "d", getPath(maxAngle));
-            back.setAttribute("stroke", config.back_color);
-            back.setAttribute("stroke-width", "" + config.back_width * config.radius / 100);
-            back.setAttribute("fill", "transparent");
-            back.setAttribute("class", "back");
-            element.appendChild(back);
-
-            // let bg_radius = config.radius + (config.arc_width * config.radius / 100) / 2;
-            let bg_radius = config.radius - (config.arc_width * config.radius / 100) / 2;
-            let bg = document.createElementNS(NS, "circle");
-            bg.setAttributeNS(null, "cx", 50);
-            bg.setAttributeNS(null, "cy", 50);
-            bg.setAttributeNS(null, "r", `${bg_radius}`);
-            bg.setAttribute("stroke", "transparent");
-            bg.setAttribute("stroke-width", "0");
-            bg.setAttribute("fill", "transparent");
-            bg.setAttribute("class", "knob-bg");
-            element.appendChild(bg);
-
             let valueText = document.createElementNS(NS, "text");
             valueText.setAttributeNS(null, "x", "50");
             valueText.setAttributeNS(null, "y", "55");
             valueText.setAttribute("text-anchor", "middle");
             valueText.setAttribute("cursor", "default");
-            valueText.setAttribute("class", "value");
-            valueText.textContent = getValue().toFixed(2);
+            valueText.setAttribute("class", "knob-value");
+            // valueText.textContent = getValue().toFixed(2);
+            valueText.textContent = getDisplayValue();
             element.appendChild(valueText);
-
-            let path = document.createElementNS(NS, "path");
-            path.setAttributeNS(null, "d", getPath(getPolarAngle()));
-            path.setAttribute("stroke", config.arc_color);
-            path.setAttribute("stroke-width", "" + config.arc_width * config.radius / 100);
-            path.setAttribute("fill", "transparent");
-            path.setAttribute("class", "arc");
-            element.appendChild(path);
 
             if (config.cursor_dot_size > 0) {
                 let d = getDotCursor(getPolarAngle());
@@ -330,7 +457,8 @@
                 dot.setAttributeNS(null, "cx", d.cx);
                 dot.setAttributeNS(null, "cy", d.cy);
                 dot.setAttributeNS(null, "r", d.r);
-                // path.setAttribute("class", "arc");
+                // dot.setAttribute("fill", config.arc_color);
+                dot.setAttribute("class", "knob-arc");
                 element.appendChild(dot);
             }
 
@@ -339,21 +467,27 @@
                 labelText.setAttributeNS(null, "x", "50");
                 labelText.setAttributeNS(null, "y", "110");
                 labelText.setAttribute("text-anchor", "middle");
-                valueText.setAttribute("cursor", "default");
-                labelText.setAttribute("class", "label");
+                labelText.setAttribute("cursor", "default");
+                labelText.setAttribute("class", "knob-label");
                 labelText.textContent = config.label;
                 element.appendChild(labelText);
             }
 
         }  // draw()
 
+
+        function redraw() {
+
+        }
+
         /**
          *
          */
-        function redraw() {
+        function Xredraw() {
 
-            element.childNodes[2].textContent = getValue(); //.toFixed(2);
-            element.childNodes[3].setAttributeNS(null, "d", getPath(getPolarAngle()));
+            //element.childNodes[2].textContent = getValue(); //.toFixed(2);
+            element.childNodes[2].textContent = getDisplayValue();
+            element.childNodes[3].setAttributeNS(null, "d", getPath(getPolarAngle(), false));
 
             if (config.cursor_dot_size > 0) {
                 let d = getDotCursor(getPolarAngle());

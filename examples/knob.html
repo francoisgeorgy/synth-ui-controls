@@ -49,7 +49,7 @@
             border: 1px solid #aaa;
         }
 
-        .knob-bg {
+        .knob-back {
             fill: url("#grad");
         }
 
@@ -81,7 +81,8 @@
             stroke-width: 1px;
         }
 */
-        #knob1 {
+        #knob1, #knob2 {
+            background-color: #202023;
         }
 
         #knob2 text.value {
@@ -142,9 +143,21 @@
         </div>
         <div>
             <div>
+                Default, height=20vh
+            </div>
+            <svg class="knob" id="knob2" data-label="default" data-config='{"value_min": -100, "value_max": 127, "default_value": 0, "center_zero": true}'></svg>
+            <!--<div class="knob-menu" id="knob1-menu"></div>-->
+            <div>
+                <div class="config">
+                    <script>document.write(document.getElementById("knob2").dataset.config || '')</script>
+                </div>
+            </div>
+        </div>
+        <div>
+            <div>
                 Default
             </div>
-            <svg class="knob" id="knob2" data-config='{"default_value": 50, "value_max":127}' data-label="Large font"></svg>
+            <svg class="knob" id="knob2b" data-config='{"default_value": 50, "value_max":127}' data-label="Large font"></svg>
             <div>
                 <div class="config">
                     <script>document.write(document.getElementById("knob2").dataset.config || '')</script>
@@ -265,7 +278,8 @@
         var k1 = new knob(document.getElementById('knob1'), {
             cursor_dot_size: 10
         });
-//        var k2 = new knob(document.getElementById('knob2'));
+
+        var k2 = new knob(document.getElementById('knob2'));
 
         k1.value = 50;
 
