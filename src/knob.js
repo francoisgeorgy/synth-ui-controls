@@ -38,15 +38,15 @@
             back_border_color: '#888',
             back_color: '#333',
 
-            // back path:
-            back_path_radius: 40,   //TODO: rename path to track
-            back_path_width: 8,
-            back_path_color: '#555',
+            // back track:
+            back_track_radius: 40,
+            back_track_width: 8,
+            back_track_color: '#555',
 
-            // value path:
-            path_radius: 40,
-            path_width: 8,
-            path_color: '#bbb',
+            // value track:
+            track_radius: 40,
+            track_width: 8,
+            track_color: '#bbb',
 
             arc_width: 20,   // 10% of radius
             arc_color: '#666',
@@ -92,9 +92,20 @@
         var maxAngle = 0.0;      // initialized in init()
         var polarAngle = 0.0;       // Angle in polar coordinates (0 at 3 o'clock)
         var distance = 0.0;         // distance, in polar coordinates, from center of arc to last mouse position
-        var path_start = '';        // SVG path syntax
+        var track_start = '';        // SVG path syntax
         var mouseWheelDirection = 1;
         var value = 0.0;        // current value [value_min..value_max]
+
+        // svg elements
+        let back_disk = null;
+        let back_track_left = null;
+        let back_track_right = null;
+        let back_track = null;
+        let track = null;
+
+        let split_track_min_left = 0;
+        let split_track_min_right = 0;
+        let split_track_middle = Math.PI * 3.0 / 2.0; // middle at 6 0'clock
 
         init();
         draw();
@@ -125,14 +136,14 @@
                 let cursorLength = config.radius * ((100.0 - config.cursor_start) / 100.0);  // cursor is in percents
                 let cursor_endX = getViewboxX(Math.cos(angle_rad) * cursorLength);
                 let cursor_endY = getViewboxY(Math.sin(angle_rad) * cursorLength);
-                path_start = `M ${cursor_endX},${cursor_endY} L`;
+                track_start = `M ${cursor_endX},${cursor_endY} L`;
             } else {
-                path_start = 'M';
+                track_start = 'M';
             }
 
-            path_start += `${arcStartX},${arcStartY} A ${config.radius},${config.radius}`;
+            track_start += `${arcStartX},${arcStartY} A ${config.radius},${config.radius}`;
 
-            console.log(`path_start = ${path_start}`);
+            console.log(`track_start = ${track_start}`);
 
             mouseWheelDirection = _isMacOS() ? -1 : 1;
 
@@ -172,6 +183,9 @@
             let previous = polarAngle;
 
             let a = (angle + 360.0) % 360.0;    // we add 360 to handle negative values down to -360
+
+            console.log(`setPolarAngle(${angle}) --> ${a}`);
+
             // apply boundaries
             let b = polarToKnobAngle(a);
             if (b < config.arc_min) {
@@ -276,11 +290,11 @@
 
             let arcDirection = config.rotation === CW ? 1 : 0;
 
-            let path;
+            let track;
             if (config.cursor_only) {
-                path = ` M${endX},${endY}`;
+                track = ` M${endX},${endY}`;
             } else {
-                path = path_start + ` 0 ${largeArc},${arcDirection} ${endX},${endY}`;
+                track = track_start + ` 0 ${largeArc},${arcDirection} ${endX},${endY}`;
             }
 
             if (withEndCursor) {
@@ -288,20 +302,20 @@
                     let cursorLength = config.radius * ((100.0 - config.cursor_end) / 100.0);  // cursor is in percents
                     let cursor_endX = getViewboxX(Math.cos(a_rad) * cursorLength);
                     let cursor_endY = getViewboxY(Math.sin(a_rad) * cursorLength);
-                    path += ` L ${cursor_endX},${cursor_endY}`;
+                    track += ` L ${cursor_endX},${cursor_endY}`;
                 }
             } else {
                 if (config.cursor > 0) {
                     let cursorLength = config.radius * ((100.0 - config.cursor) / 100.0);  // cursor is in percents
                     let cursor_endX = getViewboxX(Math.cos(a_rad) * cursorLength);
                     let cursor_endY = getViewboxY(Math.sin(a_rad) * cursorLength);
-                    path += ` L ${cursor_endX},${cursor_endY}`;
+                    track += ` L ${cursor_endX},${cursor_endY}`;
                 }
             }
 
-            console.log(path);
+            console.log(track);
 
-            return path;
+            return track;
         }
 
         /**
@@ -325,29 +339,76 @@
 
             // let deltaAngle = (fromAngle - toAngle + 360.0) % 360.0;
             let deltaAngle = (fromAngle - toAngle + 2 * Math.PI) % (2 * Math.PI);
+
+
+            console.log("deltaAngle: " + deltaAngle);
+
             // let largeArc = deltaAngle < 180.0 ? 0 : 1;
             let largeArc = deltaAngle < Math.PI ? 0 : 1;
             let arcDirection = config.rotation === CW ? 1 : 0;
 
             let path = `M ${x0},${y0} A ${radius},${radius} 0 ${largeArc},${arcDirection} ${x1},${y1}`; //TODO: add terminator
 
-            console.log(path);
+            console.log("arc: " + path);
 
             return path;
         }
 
-        var parts_indexes = {};
-        var part_index = 0;
+        function getTrackPath() {
+
+            let p = null;
+
+            //let rad = getPolarAngle() * Math.PI / 180.0;
+
+            let a = getPolarAngle();
+            let rad = a * Math.PI / 180.0;
+            console.log(`getTrackPath, value=${value}, a=${a}, rad=${rad}, ml=${split_track_min_left}, mr=${split_track_min_right}, mid=${split_track_middle}`);
+
+            if (config.center_zero) {
+
+                if ((rad > split_track_min_left) && (rad < split_track_middle)) {
+
+                    console.log('left');
+
+                    // if (rad < split_track_min_left) return null;
+
+                    p = getArc(rad, split_track_min_left, config.track_radius);
+
+                } else if ((rad < split_track_min_right) || (rad > split_track_middle)) {
+
+                    console.log('right');
+
+                    // if ((rad < split_track_min_left) && (rad > split_track_min_right)) return '';
+
+                    p = getArc(split_track_min_right, rad, config.track_radius);
+                }
+
+            } else {
+                p = getArc(minAngle * Math.PI / 180.0, rad, config.track_radius);
+            }
+
+            return p;
+
+        }
+
+        //
+        // var parts_indexes = {
+        //     'back_disk': 0,
+        //     'back_track_left': 0,
+        //     'back_track': 0,
+        //     'track': 0,
+        // };
+        // var part_index = 0;
 
         function draw_back() {
 
-            part_index = 0;
+            // part_index = 0;
 
             element.setAttributeNS("http://www.w3.org/2000/xmlns/", "xmlns:xlink", "http://www.w3.org/1999/xlink");
             element.setAttributeNS(null, "viewBox", config.with_label ? "0 0 100 120" : "0 0 100 100");
             // element.setAttribute("class", "knob");
 
-            let back_disk = document.createElementNS(NS, "circle");
+            back_disk = document.createElementNS(NS, "circle");
             back_disk.setAttributeNS(null, "cx", "50");
             back_disk.setAttributeNS(null, "cy", "50");
             back_disk.setAttributeNS(null, "r", `${config.back_radius}`);
@@ -358,68 +419,71 @@
             back_disk.setAttribute("class", "knob-back");
             element.appendChild(back_disk);
 
-            // parts_indexes['back_disk'] = part_index;
+            // parts_indexes.push()['back_disk'] = part_index;
             // part_index++;
 
             if (config.center_zero) {
 
-                let aminus = Math.acos(-(config.back_path_width*1.5)/100.0);
-                let aplus = Math.acos((config.back_path_width*1.5)/100.0);
-                console.log(aminus*180.0/Math.PI);
-                console.log(aplus*180.0/Math.PI);
+                split_track_min_left = Math.acos(-(config.back_track_width*1.5)/100.0);
+                split_track_min_right = Math.acos((config.back_track_width*1.5)/100.0);
+                console.log(split_track_min_left*180.0/Math.PI);
+                console.log(split_track_min_right*180.0/Math.PI);
 // left
-//                 let ax = 50 + Math.cos(aminus) * config.back_path_radius;
-//                 let ay = 50 - Math.sin(aminus) * config.back_path_radius;
+//                 let ax = 50 + Math.cos(aminus) * config.back_track_radius;
+//                 let ay = 50 - Math.sin(aminus) * config.back_track_radius;
 // right
-//                 let bx = 50 + Math.cos(aplus) * config.back_path_radius;
-//                 let by = 50 - Math.sin(aplus) * config.back_path_radius;
+//                 let bx = 50 + Math.cos(aplus) * config.back_track_radius;
+//                 let by = 50 - Math.sin(aplus) * config.back_track_radius;
 
-                let back_path_left = document.createElementNS(NS, "path");
-                back_path_left.setAttributeNS(null, "d", getArc(minAngle * Math.PI / 180.0, aminus, config.path_radius));
-                // back_path_left.setAttributeNS(null, "d", getPath(aminus*180.0/Math.PI, false));
-                back_path_left.setAttribute("stroke", `${config.back_path_color}`);
-                back_path_left.setAttribute("stroke-width", `${config.back_path_width}`);
-                back_path_left.setAttribute("stroke-linecap", "round");
-                back_path_left.setAttribute("fill", "transparent");
-                back_path_left.setAttribute("class", "knob-back-path");
-                element.appendChild(back_path_left);
+                back_track_left = document.createElementNS(NS, "path");
+                back_track_left.setAttributeNS(null, "d", getArc(minAngle * Math.PI / 180.0, split_track_min_left, config.track_radius));
+                // back_track_left.setAttributeNS(null, "d", getPath(aminus*180.0/Math.PI, false));
+                back_track_left.setAttribute("stroke", `${config.back_track_color}`);
+                back_track_left.setAttribute("stroke-width", `${config.back_track_width}`);
+                back_track_left.setAttribute("stroke-linecap", "round");
+                back_track_left.setAttribute("fill", "transparent");
+                back_track_left.setAttribute("class", "knob-back-track");
+                element.appendChild(back_track_left);
 
-                let back_path_right = document.createElementNS(NS, "path");
-                back_path_right.setAttributeNS(null, "d", getArc(aplus, maxAngle * Math.PI / 180.0, config.path_radius));
-                // back_path_left.setAttributeNS(null, "d", getPath(aminus*180.0/Math.PI, false));
-                back_path_right.setAttribute("stroke", `${config.back_path_color}`);
-                back_path_right.setAttribute("stroke-width", `${config.back_path_width}`);
-                back_path_right.setAttribute("stroke-linecap", "round");
-                back_path_right.setAttribute("fill", "transparent");
-                back_path_right.setAttribute("class", "knob-back-path");
-                element.appendChild(back_path_right);
+                back_track_right = document.createElementNS(NS, "path");
+                back_track_right.setAttributeNS(null, "d", getArc(split_track_min_right, maxAngle * Math.PI / 180.0, config.track_radius));
+                // back_track_left.setAttributeNS(null, "d", getPath(aminus*180.0/Math.PI, false));
+                back_track_right.setAttribute("stroke", `${config.back_track_color}`);
+                back_track_right.setAttribute("stroke-width", `${config.back_track_width}`);
+                back_track_right.setAttribute("stroke-linecap", "round");
+                back_track_right.setAttribute("fill", "transparent");
+                back_track_right.setAttribute("class", "knob-back-track");
+                element.appendChild(back_track_right);
 
             } else {
 
-                let back_path = document.createElementNS(NS, "path");
-                back_path.setAttributeNS(null, "d", getPath(maxAngle, true));
-                back_path.setAttribute("stroke", `${config.back_path_color}`);
-                back_path.setAttribute("stroke-width", `${config.back_path_width}`);
-                back_path.setAttribute("fill", "transparent");
-                back_path.setAttribute("stroke-linecap", "round");
-                back_path.setAttribute("class", "knob-back-path");
-                element.appendChild(back_path);
+                back_track = document.createElementNS(NS, "path");
+                back_track.setAttributeNS(null, "d", getPath(maxAngle, true));
+                back_track.setAttribute("stroke", `${config.back_track_color}`);
+                back_track.setAttribute("stroke-width", `${config.back_track_width}`);
+                back_track.setAttribute("fill", "transparent");
+                back_track.setAttribute("stroke-linecap", "round");
+                back_track.setAttribute("class", "knob-back-track");
+                element.appendChild(back_track);
 
-                // parts_indexes['back_path'] = part_index;
+                // parts_indexes['back_track'] = part_index;
                 // part_index++;
             }
 
         }
 
-        function draw_value() {
-            let path = document.createElementNS(NS, "path");
-            path.setAttributeNS(null, "d", getArc(Math.PI/2.0, maxAngle, config.path_radius));
-            path.setAttribute("stroke", `${config.path_color}`);
-            path.setAttribute("stroke-width", `${config.path_width}`);
-            path.setAttribute("fill", "transparent");
-            path.setAttribute("stroke-linecap", "round");
-            path.setAttribute("class", "knob-path");
-            element.appendChild(path);
+        function draw_track() {
+            let p = getTrackPath();
+            if (p) {
+                track = document.createElementNS(NS, "path");
+                track.setAttributeNS(null, "d", p);
+                track.setAttribute("stroke", `${config.track_color}`);
+                track.setAttribute("stroke-width", `${config.track_width}`);
+                track.setAttribute("fill", "transparent");
+                track.setAttribute("stroke-linecap", "round");
+                track.setAttribute("class", "knob-track");
+                element.appendChild(track);
+            }
         }
 
         function draw_cursor() {
@@ -428,7 +492,7 @@
 
         function draw() {
             draw_back();
-            //draw_value();
+            draw_track();
             //draw_cursor();
         }
 
@@ -477,7 +541,15 @@
 
 
         function redraw() {
+            let p = getTrackPath();
+            if (p) {
+                if (track) {
+                    track.setAttributeNS(null, "d", p);
+                } else {
+                    draw_track();
+                }
 
+            }
         }
 
         /**
