@@ -24,13 +24,19 @@
             zero_at: 270.0,      // the 0 degree will be at 270 polar degrees (6 o'clock).
             arc_min: 30.0,          // Angle in knob coordinates (0 at 6 0'clock)
             arc_max: 330.0,         // Angle in knob coordinates (0 at 6 0'clock)
-            cursor: 0,            // 20% of radius
-            cursor_start: 0,            // 20% of radius
-            cursor_end: 0,            // 20% of radius
+
+            cursor_radius: 32,            // same unit as radius
+            cursor_length: 10,
+            cursor_width: 4,    // only when cursor_only is true
+            cursor_color: '#bbb',    // only when cursor_only is true
+
+            // cursor_start: 0,            // 20% of radius
+            // cursor_end: 0,            // 20% of radius
+
+            dot_cursor: false,
             cursor_dot_position: 75,         // % of radius (try 80), ignored when cursor_dot_size <= 0
             cursor_dot_size: 0,         // % of radius (try 10)
             cursor_only: false,  //TODO
-            cursor_width: 0,    // only when cursor_only is true
 
             // back disk:
             back_radius: 32,
@@ -102,6 +108,7 @@
         let back_track_right = null;
         let back_track = null;
         let track = null;
+        let cursor = null;
 
         let split_track_min_left = 0;
         let split_track_min_right = 0;
@@ -290,32 +297,32 @@
 
             let arcDirection = config.rotation === CW ? 1 : 0;
 
-            let track;
+            let p;
             if (config.cursor_only) {
-                track = ` M${endX},${endY}`;
+                p = ` M${endX},${endY}`;
             } else {
-                track = track_start + ` 0 ${largeArc},${arcDirection} ${endX},${endY}`;
+                p = track_start + ` 0 ${largeArc},${arcDirection} ${endX},${endY}`;
             }
 
-            if (withEndCursor) {
-                if (config.cursor_end > 0) {
-                    let cursorLength = config.radius * ((100.0 - config.cursor_end) / 100.0);  // cursor is in percents
-                    let cursor_endX = getViewboxX(Math.cos(a_rad) * cursorLength);
-                    let cursor_endY = getViewboxY(Math.sin(a_rad) * cursorLength);
-                    track += ` L ${cursor_endX},${cursor_endY}`;
-                }
-            } else {
-                if (config.cursor > 0) {
-                    let cursorLength = config.radius * ((100.0 - config.cursor) / 100.0);  // cursor is in percents
-                    let cursor_endX = getViewboxX(Math.cos(a_rad) * cursorLength);
-                    let cursor_endY = getViewboxY(Math.sin(a_rad) * cursorLength);
-                    track += ` L ${cursor_endX},${cursor_endY}`;
-                }
-            }
+            // if (withEndCursor) {
+            //     if (config.cursor_end > 0) {
+            //         let cursorLength = config.radius * ((100.0 - config.cursor_end) / 100.0);  // cursor is in percents
+            //         let cursor_endX = getViewboxX(Math.cos(a_rad) * cursorLength);
+            //         let cursor_endY = getViewboxY(Math.sin(a_rad) * cursorLength);
+            //         p += ` L ${cursor_endX},${cursor_endY}`;
+            //     }
+            // } else {
+            //     if (config.cursor > 0) {
+            //         let cursorLength = config.radius * ((100.0 - config.cursor) / 100.0);  // cursor is in percents
+            //         let cursor_endX = getViewboxX(Math.cos(a_rad) * cursorLength);
+            //         let cursor_endY = getViewboxY(Math.sin(a_rad) * cursorLength);
+            //         p += ` L ${cursor_endX},${cursor_endY}`;
+            //     }
+            // }
 
-            console.log(track);
+            console.log(p);
 
-            return track;
+            return p;
         }
 
         /**
@@ -347,11 +354,11 @@
             let largeArc = deltaAngle < Math.PI ? 0 : 1;
             let arcDirection = config.rotation === CW ? 1 : 0;
 
-            let path = `M ${x0},${y0} A ${radius},${radius} 0 ${largeArc},${arcDirection} ${x1},${y1}`; //TODO: add terminator
+            let p = `M ${x0},${y0} A ${radius},${radius} 0 ${largeArc},${arcDirection} ${x1},${y1}`; //TODO: add terminator
 
-            console.log("arc: " + path);
+            console.log("arc: " + p);
 
-            return path;
+            return p;
         }
 
         function getTrackPath() {
@@ -387,6 +394,7 @@
                 p = getArc(minAngle * Math.PI / 180.0, rad, config.track_radius);
             }
 
+            console.log('track path = ' + p);
             return p;
 
         }
@@ -486,14 +494,67 @@
             }
         }
 
+        function getTrackCursor() {
+            let a = getPolarAngle() * Math.PI / 180.0;
+            let x0 = getViewboxX(Math.cos(a) * (HALF_HEIGHT - config.cursor_radius));
+            let y0 = getViewboxY(Math.sin(a) * (HALF_HEIGHT - config.cursor_radius));
+            let x1 = getViewboxX(Math.cos(a) * (HALF_HEIGHT - config.cursor_radius + config.cursor_length));
+            let y1 = getViewboxY(Math.sin(a) * (HALF_HEIGHT - config.cursor_radius + config.cursor_length));
+            return `M ${x0},${y0} L ${x1},${y1}`;   //TODO: add termintor
+        }
+
+
         function draw_cursor() {
 
+            // let p = '';
+
+            if (config.dot_cursor) {
+                //TODO
+/*
+                let d = getDotCursor(getPolarAngle());
+                let dot = document.createElementNS(NS, "circle");
+                dot.setAttributeNS(null, "cx", d.cx);
+                dot.setAttributeNS(null, "cy", d.cy);
+                dot.setAttributeNS(null, "r", d.r);
+                // dot.setAttribute("fill", config.arc_color);
+                dot.setAttribute("class", "knob-arc");
+                element.appendChild(dot);
+*/
+            } else {
+
+                // let a = getPolarAngle() * Math.PI / 180.0;
+                // //
+                // // let c2ax = 50 + Math.cos(a) * (50 - config.cursor_radius);
+                // // let c2ay = 50 - Math.sin(a) * (50 - config.cursor_radius);
+                // // let c2bx = 50 + Math.cos(a) * (50 - config.cursor_radius + config.cursor_length);
+                // // let c2by = 50 - Math.sin(a) * (50 - config.cursor_radius + config.cursor_length);
+                //
+                //
+                // // let cursor_length =
+                // let x0 = getViewboxX(Math.cos(a) * (HALF_HEIGHT - config.cursor_radius));
+                // let y0 = getViewboxY(Math.sin(a) * (HALF_HEIGHT - config.cursor_radius));
+                // let x1 = getViewboxX(Math.cos(a) * (HALF_HEIGHT - config.cursor_radius + config.cursor_length));
+                // let y1 = getViewboxY(Math.sin(a) * (HALF_HEIGHT - config.cursor_radius + config.cursor_length));
+                // p = `M ${x0},${y0} L ${x1},${y1}`;
+                // console.log('cursor', a, p);
+                let p = getTrackCursor();
+                if (p) {
+                    cursor = document.createElementNS(NS, "path");
+                    cursor.setAttributeNS(null, "d", p);
+                    cursor.setAttribute("stroke", `${config.cursor_color}`);
+                    cursor.setAttribute("stroke-width", `${config.cursor_width}`);
+                    cursor.setAttribute("fill", "transparent");
+                    cursor.setAttribute("stroke-linecap", "round");
+                    cursor.setAttribute("class", "knob-cursor");
+                    element.appendChild(cursor);
+                }
+            }
         }
 
         function draw() {
             draw_back();
             draw_track();
-            //draw_cursor();
+            draw_cursor();
         }
 
         function Xdraw() {
@@ -548,7 +609,19 @@
                 } else {
                     draw_track();
                 }
+            } else {
+                if (track) {
+                    track.setAttributeNS(null, "d", "");    // we hide the track
+                }
+            }
 
+            p = getTrackCursor();
+            if (p) {
+                if (cursor) {
+                    cursor.setAttributeNS(null, "d", p);
+                // } else {
+                //     draw_track();
+                }
             }
         }
 
