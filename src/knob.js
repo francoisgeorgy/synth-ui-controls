@@ -116,8 +116,8 @@
         let split_track_middle = Math.PI * 3.0 / 2.0; // middle at 6 0'clock
         // between this values the track will be hidden:
         let split_track_zero  = Math.PI * 0.5;
-        let split_track_zero_left  = Math.PI * 0.5 * 1.01; // 1%
-        let split_track_zero_right  = Math.PI * 0.5 * 0.99; // 1%
+        // let split_track_zero_left  = Math.PI * 0.5 * 1.01; // 1%
+        // let split_track_zero_right  = Math.PI * 0.5 * 0.99; // 1%
 
         init();
         draw();
@@ -144,18 +144,18 @@
                 // TODO
             }
 
-            if (config.cursor_start > 0) {
-                let cursorLength = config.radius * ((100.0 - config.cursor_start) / 100.0);  // cursor is in percents
-                let cursor_endX = getViewboxX(Math.cos(angle_rad) * cursorLength);
-                let cursor_endY = getViewboxY(Math.sin(angle_rad) * cursorLength);
-                track_start = `M ${cursor_endX},${cursor_endY} L`;
-            } else {
+            // if (config.cursor_start > 0) {
+            //     let cursorLength = config.radius * ((100.0 - config.cursor_start) / 100.0);  // cursor is in percents
+            //     let cursor_endX = getViewboxX(Math.cos(angle_rad) * cursorLength);
+            //     let cursor_endY = getViewboxY(Math.sin(angle_rad) * cursorLength);
+            //     track_start = `M ${cursor_endX},${cursor_endY} L`;
+            // } else {
                 track_start = 'M';
-            }
+//            }
 
             track_start += `${arcStartX},${arcStartY} A ${config.radius},${config.radius}`;
 
-            console.log(`track_start = ${track_start}`);
+            // console.log(`track_start = ${track_start}`);
 
             mouseWheelDirection = _isMacOS() ? -1 : 1;
 
@@ -263,6 +263,7 @@
         /**
          * angle is in degrees (polar, 0 at 3 o'clock)
          */
+/*
         function getDotCursor(endAngle) {
 
             let a_rad = endAngle * Math.PI / 180.0;
@@ -280,6 +281,7 @@
                 r: r
             };
         }
+*/
 
         /**
          * angle is in degrees (polar, 0 at 3 o'clock)
@@ -374,7 +376,7 @@
 
             let a = getPolarAngle();
             let rad = a * Math.PI / 180.0;
-            console.log(`getTrackPath, value=${value}, a=${a}, rad=${rad}, ml=${split_track_min_left}, mr=${split_track_min_right}, mid=${split_track_middle}, zl=${split_track_zero_left}, zr=${split_track_zero_right}`);
+            // console.log(`getTrackPath, value=${value}, a=${a}, rad=${rad}, ml=${split_track_min_left}, mr=${split_track_min_right}, mid=${split_track_middle}, zl=${split_track_zero_left}, zr=${split_track_zero_right}`);
 
             if (config.center_zero) {
 
@@ -539,7 +541,7 @@
 
             // let p = '';
 
-            if (config.dot_cursor) {
+            // if (config.dot_cursor) {
                 //TODO
 /*
                 let d = getDotCursor(getPolarAngle());
@@ -551,7 +553,7 @@
                 dot.setAttribute("class", "knob-arc");
                 element.appendChild(dot);
 */
-            } else {
+            // } else {
 
                 // let a = getPolarAngle() * Math.PI / 180.0;
                 // //
@@ -579,7 +581,7 @@
                     cursor.setAttribute("class", "knob-cursor");
                     element.appendChild(cursor);
                 }
-            }
+            // }
         }
 
         function draw_value() {
