@@ -116,6 +116,7 @@
         let split_track_middle = Math.PI * 3.0 / 2.0; // middle at 6 0'clock
         // between this values the track will be hidden:
         let split_track_zero  = Math.PI * 0.5;
+        let split_track_zero_value = (config.value_max - config.value_min) / 2.0;
         // let split_track_zero_left  = Math.PI * 0.5 * 1.01; // 1%
         // let split_track_zero_right  = Math.PI * 0.5 * 0.99; // 1%
 
@@ -391,10 +392,10 @@
                 //     console.log('set rad to min right');
                 //     rad = split_track_min_right;
                 // }
-                if ((v < 0) && (rad > split_track_zero) && (rad < split_track_min_left)) {
+                if ((v < split_track_zero_value) && (rad > split_track_zero) && (rad < split_track_min_left)) {
                     console.log('set rad to min left');
                     rad = split_track_min_left;
-                } else if ((v > 0) && (rad < split_track_zero) && (rad > split_track_min_right)) {
+                } else if ((v > split_track_zero_value) && (rad < split_track_zero) && (rad > split_track_min_right)) {
                     console.log('set rad to min right');
                     rad = split_track_min_right;
                 }
