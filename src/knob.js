@@ -54,8 +54,8 @@
             track_width: 8,
             track_color: '#bbb',
 
-            arc_width: 20,   // 10% of radius
-            arc_color: '#666',
+            // arc_width: 20,   // 10% of radius
+            // arc_color: '#666',
             radius: 40,
             rotation: CW,
             default_value: 0,
@@ -109,11 +109,13 @@
         let back_track = null;
         let track = null;
         let cursor = null;
+        let valueText = null;
 
         let split_track_min_left = Math.acos(-(config.back_track_width*1.5)/100.0);
         let split_track_min_right = Math.acos((config.back_track_width*1.5)/100.0);
         let split_track_middle = Math.PI * 3.0 / 2.0; // middle at 6 0'clock
         // between this values the track will be hidden:
+        let split_track_zero  = Math.PI * 0.5;
         let split_track_zero_left  = Math.PI * 0.5 * 1.01; // 1%
         let split_track_zero_right  = Math.PI * 0.5 * 0.99; // 1%
 
@@ -376,13 +378,31 @@
 
             if (config.center_zero) {
 
-                if ((rad > split_track_zero_left) && (rad < split_track_min_left)) {
+                // console.log(getValue());
+
+                let v = getValue();
+
+                // if (v < 0) {
+                //     console.log('set rad to min left');
+                //     rad = split_track_min_left;
+                // } else if (v > 0) {
+                //     console.log('set rad to min right');
+                //     rad = split_track_min_right;
+                // }
+                if ((v < 0) && (rad > split_track_zero) && (rad < split_track_min_left)) {
                     console.log('set rad to min left');
                     rad = split_track_min_left;
-                } else if ((rad < split_track_zero_right) && (rad > split_track_min_right)) {
+                } else if ((v > 0) && (rad < split_track_zero) && (rad > split_track_min_right)) {
                     console.log('set rad to min right');
                     rad = split_track_min_right;
                 }
+                // if ((rad > split_track_zero_left) && (rad < split_track_min_left)) {
+                //     console.log('set rad to min left');
+                //     rad = split_track_min_left;
+                // } else if ((rad < split_track_zero_right) && (rad > split_track_min_right)) {
+                //     console.log('set rad to min right');
+                //     rad = split_track_min_right;
+                // }
 
                 if ((rad >= split_track_min_left) && (rad < split_track_middle)) {
 
@@ -562,22 +582,8 @@
             }
         }
 
-        function draw() {
-            draw_back();
-            draw_track();
-            draw_cursor();
-        }
-
-        function Xdraw() {
-
-            console.log('draw', element);
-
-            // https://www.w3.org/TR/SVG/render.html#RenderingOrder:
-            // Elements in an SVG document fragment have an implicit drawing order, with the first elements in the SVG document
-            // fragment getting "painted" first. Subsequent elements are painted on top of previously painted elements.
-            // ==> first element -> "painted" first
-
-            let valueText = document.createElementNS(NS, "text");
+        function draw_value() {
+            valueText = document.createElementNS(NS, "text");
             valueText.setAttributeNS(null, "x", "50");
             valueText.setAttributeNS(null, "y", "55");
             valueText.setAttribute("text-anchor", "middle");
@@ -586,6 +592,23 @@
             // valueText.textContent = getValue().toFixed(2);
             valueText.textContent = getDisplayValue();
             element.appendChild(valueText);
+        }
+
+        function draw() {
+            draw_back();
+            draw_track();
+            draw_cursor();
+            draw_value();
+        }
+/*
+        function Xdraw() {
+
+            console.log('draw', element);
+
+            // https://www.w3.org/TR/SVG/render.html#RenderingOrder:
+            // Elements in an SVG document fragment have an implicit drawing order, with the first elements in the SVG document
+            // fragment getting "painted" first. Subsequent elements are painted on top of previously painted elements.
+            // ==> first element -> "painted" first
 
             if (config.cursor_dot_size > 0) {
                 let d = getDotCursor(getPolarAngle());
@@ -610,7 +633,7 @@
             }
 
         }  // draw()
-
+*/
 
         function redraw() {
             let p = getTrackPath();
@@ -634,11 +657,13 @@
                 //     draw_track();
                 }
             }
+
+            if (valueText) {
+                valueText.textContent = getDisplayValue();
+            }
         }
 
-        /**
-         *
-         */
+/*
         function Xredraw() {
 
             //element.childNodes[2].textContent = getValue(); //.toFixed(2);
@@ -651,6 +676,7 @@
                 element.childNodes[4].setAttributeNS(null, "cy", d.cy);
             }
         }
+*/
 
         /**
          * startDrag() must have been called before to init the targetRect variable.
