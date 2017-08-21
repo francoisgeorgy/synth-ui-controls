@@ -110,9 +110,12 @@
         let track = null;
         let cursor = null;
 
-        let split_track_min_left = 0;
-        let split_track_min_right = 0;
+        let split_track_min_left = Math.acos(-(config.back_track_width*1.5)/100.0);
+        let split_track_min_right = Math.acos((config.back_track_width*1.5)/100.0);
         let split_track_middle = Math.PI * 3.0 / 2.0; // middle at 6 0'clock
+        // between this values the track will be hidden:
+        let split_track_zero_left  = Math.PI * 0.5 * 1.01; // 1%
+        let split_track_zero_right  = Math.PI * 0.5 * 0.99; // 1%
 
         init();
         draw();
@@ -369,11 +372,19 @@
 
             let a = getPolarAngle();
             let rad = a * Math.PI / 180.0;
-            console.log(`getTrackPath, value=${value}, a=${a}, rad=${rad}, ml=${split_track_min_left}, mr=${split_track_min_right}, mid=${split_track_middle}`);
+            console.log(`getTrackPath, value=${value}, a=${a}, rad=${rad}, ml=${split_track_min_left}, mr=${split_track_min_right}, mid=${split_track_middle}, zl=${split_track_zero_left}, zr=${split_track_zero_right}`);
 
             if (config.center_zero) {
 
-                if ((rad > split_track_min_left) && (rad < split_track_middle)) {
+                if ((rad > split_track_zero_left) && (rad < split_track_min_left)) {
+                    console.log('set rad to min left');
+                    rad = split_track_min_left;
+                } else if ((rad < split_track_zero_right) && (rad > split_track_min_right)) {
+                    console.log('set rad to min right');
+                    rad = split_track_min_right;
+                }
+
+                if ((rad >= split_track_min_left) && (rad < split_track_middle)) {
 
                     console.log('left');
 
@@ -381,7 +392,7 @@
 
                     p = getArc(rad, split_track_min_left, config.track_radius);
 
-                } else if ((rad < split_track_min_right) || (rad > split_track_middle)) {
+                } else if ((rad <= split_track_min_right) || (rad > split_track_middle)) {
 
                     console.log('right');
 
@@ -431,9 +442,9 @@
             // part_index++;
 
             if (config.center_zero) {
-
-                split_track_min_left = Math.acos(-(config.back_track_width*1.5)/100.0);
-                split_track_min_right = Math.acos((config.back_track_width*1.5)/100.0);
+                //
+                // split_track_min_left = Math.acos(-(config.back_track_width*1.5)/100.0);
+                // split_track_min_right = Math.acos((config.back_track_width*1.5)/100.0);
                 console.log(split_track_min_left*180.0/Math.PI);
                 console.log(split_track_min_right*180.0/Math.PI);
 // left
