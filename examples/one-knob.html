@@ -1,0 +1,96 @@
+<!doctype html>
+<html>
+<head>
+    <script src="../src/knob2.js"></script>
+    <style>
+        body {
+            background-color: #ddd;
+            /*background: linear-gradient(316deg, rgba(255,0,0,1) 0%, rgba(0,0,0,1) 75%, rgba(0,0,0,1) 100%);*/
+        }
+        #main {
+            /*display: flex;*/
+            /*flex-direction: row;*/
+            /*flex-wrap: wrap;*/
+            /*align-items: flex-start;*/
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+        }
+
+        .knob {
+            width: 100px;
+            /*height: 200px;   !* 20% of viewport height *!*/
+            background-color: #ffffff;
+            border: none;
+            /*line-height: 0;*/
+        }
+
+        .knob-menu {
+            display: none;
+
+            z-index: 1000;
+            position: absolute;
+            overflow: hidden;
+            border: 1px solid #595959;
+            white-space: nowrap;
+            font-family: sans-serif;
+            font-size: 12px;
+            border-radius: 2px;
+            padding: 0;
+            /*opacity: 0;*/
+            -webkit-transition:opacity 200ms;
+            -moz-transition:opacity 200ms;
+            -o-transition:opacity 200ms;
+            -ms-transition:opacity 200ms;
+
+            background-color: yellow;
+        }
+
+        #knob {
+        }
+
+    </style>
+</head>
+<body>
+    <div id="main">
+        <!--<svg class="knob" id="knob" data-label="default"></svg>-->
+        <div class="knob" id="knob" data-label="default">
+            <div class="knob-menu" id="m">
+                <div style="border-bottom: 1px solid #aaa;">
+                    bla bla bla
+                </div>
+                <ul>
+                    <li class="knob-menu-option">option 1</li>
+                    <li class="knob-menu-option">option 2</li>
+                </ul>
+            </div>
+        </div>
+<!--
+        <div class="knob-menu" id="m">
+            <div>
+                yolo blabla<br />
+                yolo blabla<br />
+                yolo blabla<br />
+                yolo blabla<br />
+                yolo blabla<br />
+                yolo blabla<br />
+                yolo blabla<br />
+                yolo blabla<br />
+                yolo blabla<br />
+                yolo blabla<br />
+            </div>
+            <ul>
+                <li>option 1</li>
+                <li>option 2</li>
+            </ul>
+        </div>
+-->
+    </div>
+</body>
+<script type="text/javascript">
+
+    document.addEventListener("DOMContentLoaded", function(event) {
+        var k = new knob(document.getElementById('knob'), {});
+    });
+
+</script>
+</html>
