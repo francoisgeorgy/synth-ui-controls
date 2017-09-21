@@ -1,0 +1,37 @@
+<!doctype html>
+<html>
+<head>
+    <script src="tests.js" type="module"></script>
+    <style>
+        body {
+            background-color: #ddd;
+            font-family: sans-serif;
+        }
+        #main {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+        }
+        .knob {
+            width: 100px;
+            background-color: #ffffff;
+            border: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="main">
+        <!--<svg class="knob" id="knob" data-label="default"></svg>-->
+        <div class="knob" id="knob" data-label="default">
+            <div class="knob-menu" id="m">
+                <div style="border-bottom: 1px solid #aaa;">
+                    bla bla bla
+                </div>
+                <ul>
+                    <li class="knob-menu-option">option 1</li>
+                    <li class="knob-menu-option">option 2</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

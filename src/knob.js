@@ -1,93 +1,157 @@
 
     "use strict";
 
-    var knob = (function(elem, conf) {
+    export default function(elem, conf) {
 
-        // It faster to access a property than to access a variable...
+        const TRACE = true;    // when true, will log more details in the console
+
+        // It is faster to access a property than to access a variable...
         // See https://jsperf.com/vars-vs-props-speed-comparison/1
 
         const NS = "http://www.w3.org/2000/svg";
         const CW = true;    // clock-wise
         const CCW = !CW;    // counter clock-wise
 
-        var element = elem;    // DOM element
+        const element = elem;    // DOM element
 
         // For the user convenience, the label can be set with the "data-label" attribute.
         // If another label is set in data-config then this later definition will override data-label.
         let default_label = element.dataset.label !== undefined ? element.dataset.label : '';
 
         let defaults = {
-            // user configurable
-            // no camelCase because we want to be able to have the same name in data- attributes.
+
+            // User configurable properties.
+            // No camelCase because we want to be able to have the same name in data- attributes.
+
             label: default_label,
-            with_label: true,
-            zero_at: 270.0,      // the 0 degree will be at 270 polar degrees (6 o'clock).
-            arc_min: 30.0,          // Angle in knob coordinates (0 at 6 0'clock)
-            arc_max: 330.0,         // Angle in knob coordinates (0 at 6 0'clock)
-            cursor_start: 0,            // 20% of radius
-            cursor_end: 0,            // 20% of radius
-            cursor_dot_position: 75,         // % of radius (try 80), ignored when cursor_dot_size <= 0
+            with_label: false,
+            zero_at: 270.0,             // the 0 degree will be at 270 polar degrees (6 o'clock).
+            arc_min: 30.0,              // Angle in knob coordinates (0 at 6 0'clock)
+            arc_max: 330.0,             // Angle in knob coordinates (0 at 6 0'clock)
+
+            cursor_radius: 32,          // same unit as radius
+            cursor_length: 10,
+            cursor_width: 4,            // only when cursor_only is true
+            cursor_color: '#bbb',       // only when cursor_only is true
+
+            // cursor_start: 0,         // 20% of radius
+            // cursor_end: 0,           // 20% of radius
+
+            dot_cursor: false,
+            cursor_dot_position: 75,    // % of radius (try 80), ignored when cursor_dot_size <= 0
             cursor_dot_size: 0,         // % of radius (try 10)
-            cursor_only: false,  //TODO
-            cursor_width: 0,    // only when cursor_only is true
-            back_width: 20,   // 10% of radius
-            back_color: '#ddd',
-            arc_width: 20,   // 10% of radius
-            arc_color: '#666',
+            cursor_only: false,         //TODO
+
+            // back disk:
+            back_radius: 32,
+            back_border_width: 1,
+            back_border_color: '#888',
+            back_color: '#333',
+
+            // back track:
+            back_track_radius: 40,
+            back_track_width: 8,
+            back_track_color: '#555',
+
+            // value track:
+            track_radius: 40,
+            track_width: 8,
+            track_color_init: '#999',
+            track_color: '#bbb',
+
+            // arc_width: 20,   // 10% of radius
+            // arc_color: '#666',
             radius: 40,
             rotation: CW,
             default_value: 0,
-            value_min: 0.0,
-            value_max: 100.0,
-            value_resolution: 1,      // null means ignore
-            snap_to_steps: false,        // TODO
-            value_formatting: null      // TODO; callback function
+
+            center_zero: false,
+
+            value_min: 0.0,             // TODO: rename to min
+            value_max: 100.0,           // TODO: rename to max
+            value_resolution: 1,        // null means ignore  // TODO: rename to step
+
+            snap_to_steps: false,       // TODO
+
+            value_formatting: null,     // TODO; callback function
+            format: function(v) {
+                return v;
+            }
         };
 
         let data_config = JSON.parse(element.dataset.config || '{}');
         let config = Object.assign({}, defaults, conf, data_config);
 
-        // NOTE: viewBox must be 100x120: 100x100 for the arc and 100x20 below for the label.
-
+        // To simplify the internal coordinates transformations, we set the view box as a 100 by 100 square.
+        // But, if a label is present, then we add 20 to the height (at the bottom) as a placeholder for the label.
+        // In summary:
+        // - 0,0..99,99: the knob itself
+        // - 0,100..99,119: the label, if any
+        const VIEWBOX_WIDTH = 100;
+        const VIEWBOX_HEIGHT = config.with_label ? 120 : 100;
         const HALF_WIDTH = 50;      // viewBox/2
         const HALF_HEIGHT = 50;     // viewBox/2
-        // const RADIUS = 40;          // a bit less than viewBox/2 to have a margin outside the arc. Must also takes into account the width of the arc stroke.
-
-        // mouse drag support
-        // var currentTarget;  //TODO: could be replaced by element ?
-        var targetRect;
 
         // Center of arc in knob coordinates and in ViewPort's pixels relative to the <svg> ClientBoundingRect.
-        var arcCenterXPixels = 0;
-        var arcCenterYPixels = 0; // equal to arcCenterXPixels because the knob is a circle
+        let arcCenterXPixels = 0;
+        let arcCenterYPixels = 0; // equal to arcCenterXPixels because the knob is a circle
 
         // start of arc, in ViewBox coordinates, computed once during the init
-        var arcStartX;     // knob coordinates
-        var arcStartY;     // knob coordinates
+        let arcStartX;     // knob coordinates
+        let arcStartY;     // knob coordinates
+
+        // Pre-computed values to speed-up operations:
+        // (we use variables instead of const to allow the re-configuration of the knob at any moment)
+        let minAngle = 0.0;             // [degrees] initialized in init()
+        let maxAngle = 0.0;             // [degrees] initialized in init()
+        let track_start = '';           // SVG path syntax
+
+        let split_track_min_left = 0;   // angle in [rad]
+        let split_track_min_right = 0;  // angle in [rad]
+        let split_track_middle = 0;     // angle in [rad]; middle at 6 0'clock
+        // between this values the track will be hidden:
+        let split_track_zero = 0;       // angle in [rad]
+        let split_track_zero_value = 0; // knob value
 
         // internals
-        var minAngle = 0.0;      // initialized in init()
-        var maxAngle = 0.0;      // initialized in init()
-        var polarAngle = 0.0;       // Angle in polar coordinates (0 at 3 o'clock)
-        var distance = 0.0;         // distance, in polar coordinates, from center of arc to last mouse position
-        var path_start = '';        // SVG path syntax
-        var mouseWheelDirection = 1;
-        var value = 0.0;        // current value [value_min..value_max]
+        let polarAngle = 0.0;           // [degrees] Angle in polar coordinates (0 at 3 o'clock)
+        let distance = 0.0;             // distance from arc center to mouse position
+        let mouseWheelDirection = 1;    // dependant of the OS
+        let value = 0.0;                // current value [value_min..value_max]
+
+        // SVG elements, from back to front:
+        let back_disk = null;
+        let back_track = null;          // for non zero-centered knobs
+        let back_track_left = null;     // for zero-centered knobs
+        let back_track_right = null;    // for zero-centered knobs
+        let track = null;
+        let cursor = null;
+        let valueText = null;
+
+        if (TRACE) console.log(`${element.id}: split_track_zero_value=${split_track_zero_value}`);
+
+        // mouse drag support
+        let targetRect;
+
+        // true if the current knob value is different from the default value
+        let has_changed = false;    // to spare some getValue() calls when testing if value has changed from default_value
 
         init();
         draw();
         attachEventHandlers();
 
+        /**
+         * Having a init function allow the knob to be re-configured.
+         */
         function init() {
 
-            console.group('INIT');
+            // console.group('INIT');
 
             // compute min and max angles:
             minAngle = knobToPolarAngle(config.arc_min);
             maxAngle = knobToPolarAngle(config.arc_max);
 
             // compute initial viewBox coordinates (independent from browser resizing):
-            // setValue(config.value_min);
             let angle_rad = minAngle * Math.PI / 180.0;
             arcStartX = getViewboxX(Math.cos(angle_rad) * config.radius);
             arcStartY = getViewboxY(Math.sin(angle_rad) * config.radius);
@@ -95,29 +159,50 @@
             // set initial angle:
             setValue(config.default_value);
 
+            split_track_min_left = Math.acos(-(config.back_track_width*1.5)/100.0);
+            split_track_min_right = Math.acos((config.back_track_width*1.5)/100.0);
+            split_track_middle = Math.PI * 3.0 / 2.0; // middle at 6 0'clock
+            // between this values the track will be hidden:
+            split_track_zero  = Math.PI * 0.5;
+            split_track_zero_value = Math.floor(((config.value_max - config.value_min) / 2.0) / config.value_resolution) * config.value_resolution;
+
             if (config.cursor_only) {
                 // TODO
             }
 
-            if (config.cursor_start > 0) {
-                let cursorLength = config.radius * ((100.0 - config.cursor_start) / 100.0);  // cursor is in percents
-                let cursor_endX = getViewboxX(Math.cos(angle_rad) * cursorLength);
-                let cursor_endY = getViewboxY(Math.sin(angle_rad) * cursorLength);
-                path_start = `M ${cursor_endX},${cursor_endY} L`;
-            } else {
-                path_start = 'M';
-            }
+            // if (config.cursor_start > 0) {
+            //     let cursorLength = config.radius * ((100.0 - config.cursor_start) / 100.0);  // cursor is in percents
+            //     let cursor_endX = getViewboxX(Math.cos(angle_rad) * cursorLength);
+            //     let cursor_endY = getViewboxY(Math.sin(angle_rad) * cursorLength);
+            //     track_start = `M ${cursor_endX},${cursor_endY} L`;
+            // } else {
+                track_start = 'M';
+//            }
 
-            path_start += `${arcStartX},${arcStartY} A ${config.radius},${config.radius}`;
+            track_start += `${arcStartX},${arcStartY} A ${config.radius},${config.radius}`;
 
-            console.log(`path_start = ${path_start}`);
+            if (TRACE) console.log(`track_start = ${track_start}`);
 
             mouseWheelDirection = _isMacOS() ? -1 : 1;
 
-            console.groupEnd();
-
+            // console.groupEnd();
         }
 
+        /**
+         *
+         * @param polar
+         * @returns {*}
+         */
+        function getDisplayValue(polar) {
+            let v = getValue(polar);
+            return config.format(v);
+        }
+
+        /**
+         *
+         * @param polar
+         * @returns {number}
+         */
         function getValue(polar) {
             let i = polarToKnobAngle(polar === undefined ? getPolarAngle() : polar);
             let v = ((i - config.arc_min) / (config.arc_max - config.arc_min)) * (config.value_max - config.value_min) + config.value_min;
@@ -127,20 +212,22 @@
             return Math.round(v / config.value_resolution) * config.value_resolution;
         }
 
+        /**
+         *
+         * @param v
+         */
         function setValue(v) {
-            console.log(`setValue(${v})`);
             value = v;
             let a = ((v - config.value_min) / (config.value_max - config.value_min)) * (config.arc_max - config.arc_min) + config.arc_min;
-            console.log(`changeValue(${v}) --> angle ${a}`);
             setPolarAngle(knobToPolarAngle(a));
         }
 
         /**
          * Angle in degrees in polar coordinates (0 degrees at 3 o'clock)
          */
-        function setPolarAngle(angle) {
+        function setPolarAngle(angle, fireEvent) {
 
-            console.log(`setPolarAngle(${angle})`);
+            // let fire = firereEvent || false;
 
             let previous = polarAngle;
 
@@ -154,7 +241,8 @@
             }
             polarAngle = a;
 
-            if (polarAngle !== previous) {
+            if (fireEvent && (polarAngle !== previous)) {
+                // does the change of angle affect the value?
                 if (getValue(previous) !== getValue()) {
                     notifyChange();
                 }
@@ -162,15 +250,18 @@
 
         }
 
+        /**
+         *
+         * @param increment
+         */
         function incPolarAngle(increment) {
-            setPolarAngle(polarAngle + increment);
+            setPolarAngle(polarAngle + increment, true);
         }
 
         /**
          * Angle in degrees in polar coordinates (0 degrees at 3 o'clock)
          */
         function getPolarAngle() {
-            console.log(`return polarAngle ${polarAngle}`);
             return polarAngle;
         }
 
@@ -180,36 +271,41 @@
         function knobToPolarAngle(angle) {
             let a = config.zero_at - angle;
             if (a < 0) a = a + 360.0;
-            console.log(`knobToPolarAngle ${angle} -> ${a}`);
+            if (TRACE) console.log(`knobToPolarAngle ${angle} -> ${a}`);
             return a;
         }
 
+        /**
+         *
+         * @param angle [deg] with 0 at 3 o'clock
+         * @returns {number}
+         */
         function polarToKnobAngle(angle) {
             //TODO: CCW or CW. "-" for changing CCW to CW
-            return (config.zero_at - angle + 360.0) % 360.0;       // we add 360 to handle negative values down to -360
+            return (config.zero_at - angle + 360.0) % 360.0;    // we add 360 to handle negative values down to -360
         }
 
         /**
-         * Return viewBox X coordinates from cartesian -1..1 X
+         * Return viewBox X coordinates from cartesian -1..1
          */
         function getViewboxX(x) {
-
             // CW:  x = 20 --> 50 + 20 = 70
             // CCW: x = 20 --> 50 - 20 = 30
-
             return config.rotation === CW ? (HALF_WIDTH + x) : (HALF_WIDTH - x);
         }
 
         /**
-         * Return viewBox Y coordinates from cartesian -1..1 Y
+         * Return viewBox Y coordinates from cartesian -1..1
          */
         function getViewboxY(y) {
-            return HALF_HEIGHT - y;  // HEIGHT - (HALF_HEIGHT + (RADIUS * y))
+            // HEIGHT - (HALF_HEIGHT + (RADIUS * y))
+            return HALF_HEIGHT - y;
         }
 
         /**
          * angle is in degrees (polar, 0 at 3 o'clock)
          */
+/*
         function getDotCursor(endAngle) {
 
             let a_rad = endAngle * Math.PI / 180.0;
@@ -227,16 +323,20 @@
                 r: r
             };
         }
+*/
 
         /**
-         * angle is in degrees (polar, 0 at 3 o'clock)
+         *
+         * @param endAngle [deg] with 0 at 3 o'clock
+         * @param withEndCursor
+         * @returns {*}
          */
-        function getPath(endAngle) {
+        function getPath(endAngle, withEndCursor) {
 
             // SVG d: "A rx,ry xAxisRotate LargeArcFlag,SweepFlag x,y".
             // SweepFlag is either 0 or 1, and determines if the arc should be swept in a clockwise (1), or anti-clockwise (0) direction
 
-            console.log(`getPath from ${minAngle} to ${endAngle}`);     // 240 330; 240-330=-90 + 360=270
+            if (TRACE) console.log(`getPath from ${minAngle} to ${endAngle}`);     // 240 330; 240-330=-90 + 360=270
 
             let a_rad = endAngle * Math.PI / 180.0;
             let endX = getViewboxX(Math.cos(a_rad) * config.radius);
@@ -245,120 +345,304 @@
             let deltaAngle = (minAngle - endAngle + 360.0) % 360.0;
             let largeArc = deltaAngle < 180.0 ? 0 : 1;
 
-//        console.log(`deltaAngle ${deltaAngle} largeArc ${largeArc}`);
+            if (TRACE) console.log(`deltaAngle ${deltaAngle} largeArc ${largeArc}`);
 
             let arcDirection = config.rotation === CW ? 1 : 0;
 
+            let p;
             if (config.cursor_only) {
-                // TODO
+                p = ` M${endX},${endY}`;
+            } else {
+                p = track_start + ` 0 ${largeArc},${arcDirection} ${endX},${endY}`;
             }
 
-            let path = path_start + ` 0 ${largeArc},${arcDirection} ${endX},${endY}`;
+            // if (withEndCursor) {
+            //     if (config.cursor_end > 0) {
+            //         let cursorLength = config.radius * ((100.0 - config.cursor_end) / 100.0);  // cursor is in percents
+            //         let cursor_endX = getViewboxX(Math.cos(a_rad) * cursorLength);
+            //         let cursor_endY = getViewboxY(Math.sin(a_rad) * cursorLength);
+            //         p += ` L ${cursor_endX},${cursor_endY}`;
+            //     }
+            // } else {
+            //     if (config.cursor > 0) {
+            //         let cursorLength = config.radius * ((100.0 - config.cursor) / 100.0);  // cursor is in percents
+            //         let cursor_endX = getViewboxX(Math.cos(a_rad) * cursorLength);
+            //         let cursor_endY = getViewboxY(Math.sin(a_rad) * cursorLength);
+            //         p += ` L ${cursor_endX},${cursor_endY}`;
+            //     }
+            // }
 
-            if (config.cursor_end > 0) {
-                let cursorLength = config.radius * ((100.0 - config.cursor_end) / 100.0);  // cursor is in percents
-                let cursor_endX = getViewboxX(Math.cos(a_rad) * cursorLength);
-                let cursor_endY = getViewboxY(Math.sin(a_rad) * cursorLength);
-                path += ` L ${cursor_endX},${cursor_endY}`;
-            }
+            if (TRACE) console.log(p);
 
-            console.log(path);
-
-            return path;
+            return p;
         }
 
-        function draw() {
+        /**
+         *
+         * @param fromAngle
+         * @param toAngle in radian (polar, 0 at 3 o'clock)
+         * @param radius in radian (polar, 0 at 3 o'clock)
+         */
+        function getArc(fromAngle, toAngle, radius) {
 
-            console.log('draw', element);
+            if (TRACE) console.log(`getArc(${fromAngle}, ${toAngle}, ${radius})`);
 
-            // https://www.w3.org/TR/SVG/render.html#RenderingOrder:
-            // Elements in an SVG document fragment have an implicit drawing order, with the first elements in the SVG document
-            // fragment getting "painted" first. Subsequent elements are painted on top of previously painted elements.
-            // ==> first element -> "painted" first
+            // SVG d: "A rx,ry xAxisRotate LargeArcFlag,SweepFlag x,y".
+            // SweepFlag is either 0 or 1, and determines if the arc should be swept in a clockwise (1), or anti-clockwise (0) direction
+
+            let x0 = getViewboxX(Math.cos(fromAngle) * radius);
+            let y0 = getViewboxY(Math.sin(fromAngle) * radius);
+
+            let x1 = getViewboxX(Math.cos(toAngle) * radius);
+            let y1 = getViewboxY(Math.sin(toAngle) * radius);
+
+            // let deltaAngle = (fromAngle - toAngle + 360.0) % 360.0;
+            let deltaAngle = (fromAngle - toAngle + 2 * Math.PI) % (2 * Math.PI);
+
+            if (TRACE) console.log("deltaAngle: " + deltaAngle);
+
+            // let largeArc = deltaAngle < 180.0 ? 0 : 1;
+            let largeArc = deltaAngle < Math.PI ? 0 : 1;
+            let arcDirection = config.rotation === CW ? 1 : 0;
+
+            let p = `M ${x0},${y0} A ${radius},${radius} 0 ${largeArc},${arcDirection} ${x1},${y1}`; //TODO: add terminator
+
+            if (TRACE) console.log("arc: " + p);
+
+            return p;
+        }
+
+        /**
+         *
+         * @returns {*}
+         */
+        function getTrackPath() {
+
+            let p = null;
+
+            let a = getPolarAngle();
+            let rad = a * Math.PI / 180.0;
+
+            // if (TRACE) console.log(`getTrackPath, value=${value}, a=${a}, rad=${rad}, ml=${split_track_min_left}, mr=${split_track_min_right}, mid=${split_track_middle}, zl=${split_track_zero_left}, zr=${split_track_zero_right}`);
+
+            if (config.center_zero) {
+
+                let v = getValue();
+
+                if (TRACE) console.log(`getTrackPath: v=${v}`);
+
+                if ((v < split_track_zero_value) && (rad > split_track_zero) && (rad < split_track_min_left)) {
+                    rad = split_track_min_left;
+                } else if ((v > split_track_zero_value) && (rad < split_track_zero) && (rad > split_track_min_right)) {
+                    rad = split_track_min_right;
+                }
+
+                if ((rad >= split_track_min_left) && (rad < split_track_middle)) {
+                    p = getArc(rad, split_track_min_left, config.track_radius);
+                } else if ((rad <= split_track_min_right) || (rad > split_track_middle)) {
+                    p = getArc(split_track_min_right, rad, config.track_radius);
+                }
+
+            } else {
+                p = getArc(minAngle * Math.PI / 180.0, rad, config.track_radius);
+            }
+
+            if (TRACE) console.log('track path = ' + p);
+            return p;
+
+        }
+
+        /**
+         *
+         */
+        function draw_back() {
 
             element.setAttributeNS("http://www.w3.org/2000/xmlns/", "xmlns:xlink", "http://www.w3.org/1999/xlink");
-            element.setAttributeNS(null, "viewBox", config.with_label ? "0 0 100 120" : "0 0 100 100");
-            // element.setAttribute("class", "knob");
+            element.setAttributeNS(null, "viewBox", `0 0 ${VIEWBOX_WIDTH} ${VIEWBOX_HEIGHT}`);
 
-            // let back = document.createElementNS(NS, "circle");
-            // back.setAttributeNS(null, "cx", "50");
-            // back.setAttributeNS(null, "cy", "50");
-            // back.setAttributeNS(null, "r", "40");
-            // back.setAttribute("class", "back");
-            // element.append(back);
+            back_disk = document.createElementNS(NS, "circle");
+            back_disk.setAttributeNS(null, "cx", `${HALF_WIDTH}`);
+            back_disk.setAttributeNS(null, "cy", `${HALF_HEIGHT}`);
+            back_disk.setAttributeNS(null, "r", `${config.back_radius}`);
+            back_disk.setAttribute("fill", `${config.back_color}`);
+            back_disk.setAttribute("stroke", `${config.back_border_color}`);
+            back_disk.setAttribute("stroke-width", `${config.back_border_width}`);
+            back_disk.setAttribute("stroke-linecap", "round");
+            back_disk.setAttribute("class", "knob-back");
+            element.appendChild(back_disk);
 
-            let back = document.createElementNS(NS, "path");
-            back.setAttributeNS(null, "d", getPath(maxAngle));
-            back.setAttribute("stroke", config.back_color);
-            back.setAttribute("stroke-width", "" + config.back_width * config.radius / 100);
-            back.setAttribute("fill", "transparent");
-            back.setAttribute("class", "back");
-            element.appendChild(back);
+            if (config.center_zero) {
 
-            // let bg_radius = config.radius + (config.arc_width * config.radius / 100) / 2;
-            let bg_radius = config.radius - (config.arc_width * config.radius / 100) / 2;
-            let bg = document.createElementNS(NS, "circle");
-            bg.setAttributeNS(null, "cx", 50);
-            bg.setAttributeNS(null, "cy", 50);
-            bg.setAttributeNS(null, "r", `${bg_radius}`);
-            bg.setAttribute("stroke", "transparent");
-            bg.setAttribute("stroke-width", "0");
-            bg.setAttribute("fill", "transparent");
-            bg.setAttribute("class", "knob-bg");
-            element.appendChild(bg);
+                back_track_left = document.createElementNS(NS, "path");
+                back_track_left.setAttributeNS(null, "d", getArc(minAngle * Math.PI / 180.0, split_track_min_left, config.track_radius));
+                back_track_left.setAttribute("stroke", `${config.back_track_color}`);
+                back_track_left.setAttribute("stroke-width", `${config.back_track_width}`);
+                back_track_left.setAttribute("stroke-linecap", "round");
+                back_track_left.setAttribute("fill", "transparent");
+                back_track_left.setAttribute("class", "knob-back-track");
+                element.appendChild(back_track_left);
 
-            let valueText = document.createElementNS(NS, "text");
-            valueText.setAttributeNS(null, "x", "50");
-            valueText.setAttributeNS(null, "y", "55");
-            valueText.setAttribute("text-anchor", "middle");
-            valueText.setAttribute("cursor", "default");
-            valueText.setAttribute("class", "value");
-            valueText.textContent = getValue().toFixed(2);
-            element.appendChild(valueText);
+                back_track_right = document.createElementNS(NS, "path");
+                back_track_right.setAttributeNS(null, "d", getArc(split_track_min_right, maxAngle * Math.PI / 180.0, config.track_radius));
+                back_track_right.setAttribute("stroke", `${config.back_track_color}`);
+                back_track_right.setAttribute("stroke-width", `${config.back_track_width}`);
+                back_track_right.setAttribute("stroke-linecap", "round");
+                back_track_right.setAttribute("fill", "transparent");
+                back_track_right.setAttribute("class", "knob-back-track");
+                element.appendChild(back_track_right);
 
-            let path = document.createElementNS(NS, "path");
-            path.setAttributeNS(null, "d", getPath(getPolarAngle()));
-            path.setAttribute("stroke", config.arc_color);
-            path.setAttribute("stroke-width", "" + config.arc_width * config.radius / 100);
-            path.setAttribute("fill", "transparent");
-            path.setAttribute("class", "arc");
-            element.appendChild(path);
+            } else {
 
-            if (config.cursor_dot_size > 0) {
+                back_track = document.createElementNS(NS, "path");
+                back_track.setAttributeNS(null, "d", getPath(maxAngle, true));
+                back_track.setAttribute("stroke", `${config.back_track_color}`);
+                back_track.setAttribute("stroke-width", `${config.back_track_width}`);
+                back_track.setAttribute("fill", "transparent");
+                back_track.setAttribute("stroke-linecap", "round");
+                back_track.setAttribute("class", "knob-back-track");
+                element.appendChild(back_track);
+
+            }
+        }
+
+        /**
+         *
+         */
+        function draw_track() {
+            let p = getTrackPath();
+            if (p) {
+                track = document.createElementNS(NS, "path");
+                track.setAttributeNS(null, "d", p);
+                track.setAttribute("stroke", `${config.track_color_init}`);
+                track.setAttribute("stroke-width", `${config.track_width}`);
+                track.setAttribute("fill", "transparent");
+                track.setAttribute("stroke-linecap", "round");
+                track.setAttribute("class", "knob-track");
+                element.appendChild(track);
+            }
+        }
+
+        /**
+         *
+         * @returns {string}
+         */
+        function getTrackCursor() {
+            let a = getPolarAngle() * Math.PI / 180.0;
+            let x0 = getViewboxX(Math.cos(a) * (HALF_HEIGHT - config.cursor_radius));
+            let y0 = getViewboxY(Math.sin(a) * (HALF_HEIGHT - config.cursor_radius));
+            let x1 = getViewboxX(Math.cos(a) * (HALF_HEIGHT - config.cursor_radius + config.cursor_length));
+            let y1 = getViewboxY(Math.sin(a) * (HALF_HEIGHT - config.cursor_radius + config.cursor_length));
+            return `M ${x0},${y0} L ${x1},${y1}`;   //TODO: add termintor
+        }
+
+        /**
+         *
+         */
+        function draw_cursor() {
+
+            // let p = '';
+
+            // if (config.dot_cursor) {
+                //TODO
+/*
                 let d = getDotCursor(getPolarAngle());
                 let dot = document.createElementNS(NS, "circle");
                 dot.setAttributeNS(null, "cx", d.cx);
                 dot.setAttributeNS(null, "cy", d.cy);
                 dot.setAttributeNS(null, "r", d.r);
-                // path.setAttribute("class", "arc");
+                // dot.setAttribute("fill", config.arc_color);
+                dot.setAttribute("class", "knob-arc");
                 element.appendChild(dot);
-            }
+*/
+            // } else {
 
-            if (config.with_label) {
-                let labelText = document.createElementNS(NS, "text");
-                labelText.setAttributeNS(null, "x", "50");
-                labelText.setAttributeNS(null, "y", "110");
-                labelText.setAttribute("text-anchor", "middle");
-                valueText.setAttribute("cursor", "default");
-                labelText.setAttribute("class", "label");
-                labelText.textContent = config.label;
-                element.appendChild(labelText);
-            }
+                // let a = getPolarAngle() * Math.PI / 180.0;
+                // //
+                // // let c2ax = 50 + Math.cos(a) * (50 - config.cursor_radius);
+                // // let c2ay = 50 - Math.sin(a) * (50 - config.cursor_radius);
+                // // let c2bx = 50 + Math.cos(a) * (50 - config.cursor_radius + config.cursor_length);
+                // // let c2by = 50 - Math.sin(a) * (50 - config.cursor_radius + config.cursor_length);
+                //
+                //
+                // // let cursor_length =
+                // let x0 = getViewboxX(Math.cos(a) * (HALF_HEIGHT - config.cursor_radius));
+                // let y0 = getViewboxY(Math.sin(a) * (HALF_HEIGHT - config.cursor_radius));
+                // let x1 = getViewboxX(Math.cos(a) * (HALF_HEIGHT - config.cursor_radius + config.cursor_length));
+                // let y1 = getViewboxY(Math.sin(a) * (HALF_HEIGHT - config.cursor_radius + config.cursor_length));
+                // p = `M ${x0},${y0} L ${x1},${y1}`;
+                // if (TRACE) console.log('cursor', a, p);
+                let p = getTrackCursor();
+                if (p) {
+                    cursor = document.createElementNS(NS, "path");
+                    cursor.setAttributeNS(null, "d", p);
+                    cursor.setAttribute("stroke", `${config.cursor_color}`);
+                    cursor.setAttribute("stroke-width", `${config.cursor_width}`);
+                    cursor.setAttribute("fill", "transparent");
+                    cursor.setAttribute("stroke-linecap", "round");
+                    cursor.setAttribute("class", "knob-cursor");
+                    element.appendChild(cursor);
+                }
+            // }
+        }
 
-        }  // draw()
+        /**
+         *
+         */
+        function draw_value() {
+            valueText = document.createElementNS(NS, "text");
+            valueText.setAttributeNS(null, "x", `${HALF_WIDTH}`);
+            valueText.setAttributeNS(null, "y", `${HALF_HEIGHT + 5}`);
+            valueText.setAttribute("text-anchor", "middle");
+            valueText.setAttribute("cursor", "default");
+            valueText.setAttribute("class", "knob-value");
+            valueText.textContent = getDisplayValue();
+            element.appendChild(valueText);
+        }
+
+        /**
+         *
+         */
+        function draw() {
+            draw_back();
+            draw_track();
+            draw_cursor();
+            draw_value();
+        }
 
         /**
          *
          */
         function redraw() {
+            let p = getTrackPath();
+            if (p) {
+                if (track) {
+                    track.setAttributeNS(null, "d", p);
+                } else {
+                    draw_track();
+                }
+            } else {
+                if (track) {
+                    track.setAttributeNS(null, "d", "");    // we hide the track
+                }
+            }
 
-            element.childNodes[2].textContent = getValue(); //.toFixed(2);
-            element.childNodes[3].setAttributeNS(null, "d", getPath(getPolarAngle()));
+            if (!has_changed) {
+                has_changed = getValue() !== config.default_value;
+                if (has_changed) {
+                    track.setAttribute("stroke", `${config.track_color}`);
+                }
+            }
 
-            if (config.cursor_dot_size > 0) {
-                let d = getDotCursor(getPolarAngle());
-                element.childNodes[4].setAttributeNS(null, "cx", d.cx);
-                element.childNodes[4].setAttributeNS(null, "cy", d.cy);
+            p = getTrackCursor();
+            if (TRACE) console.log(p);
+            if (p) {
+                if (cursor) {
+                    cursor.setAttributeNS(null, "d", p);
+                }
+            }
+
+            if (valueText) {
+                valueText.textContent = getDisplayValue();
             }
         }
 
@@ -393,9 +677,9 @@
 
             if (angle_rad < 0) angle_rad = 2.0*Math.PI + angle_rad;
 
-            console.log(`mouseUpdate: position in svg = ${dxPixels}, ${dyPixels} pixels; ${dx.toFixed(3)}, ${dy.toFixed(3)} rel.; angle ${angle_rad.toFixed(3)} rad`);
+            if (TRACE) console.log(`mouseUpdate: position in svg = ${dxPixels}, ${dyPixels} pixels; ${dx.toFixed(3)}, ${dy.toFixed(3)} rel.; angle ${angle_rad.toFixed(3)} rad`);
 
-            setPolarAngle(angle_rad * 180.0 / Math.PI);     // rads to degs
+            setPolarAngle(angle_rad * 180.0 / Math.PI, true);     // rads to degs
 
             // distance from arc center to mouse position
             distance = Math.sqrt(dx*(HALF_WIDTH/config.radius)*dx*(HALF_WIDTH/config.radius) + dy*(HALF_HEIGHT/config.radius)*dy*(HALF_HEIGHT/config.radius));
@@ -407,6 +691,8 @@
          * @param e
          */
         function startDrag(e) {
+
+            if (TRACE) console.log('startDrag');
 
             e.preventDefault();
 
@@ -460,11 +746,12 @@
          *
          */
         function endDrag() {
+            if (TRACE) console.log('endDrag');
             document.removeEventListener('mousemove', handleDrag, false);
             document.removeEventListener('mouseup', endDrag, false);
         }
 
-        var minDeltaY;
+        let minDeltaY;
 
         /**
          *
@@ -486,15 +773,12 @@
 
             let dy = e.deltaY;
 
-            if (dy != 0) {
+            if (dy !== 0) {
                 // normalize Y delta
                 if (minDeltaY > Math.abs(dy) || !minDeltaY) {
                     minDeltaY = Math.abs(dy);
                 }
             }
-
-            // important!
-            // currentTarget = e.currentTarget;
 
             incPolarAngle(mouseWheelDirection * (dy / minDeltaY));     // TODO: make mousewheel direction configurable
 
@@ -522,8 +806,7 @@
          *
          */
         function notifyChange() {
-            console.log('knob value has changed');
-            // does the change of angle affect the value?
+            if (TRACE) console.log('knob value has changed');
             let value = getValue();     // TODO: cache the value
             let event = new CustomEvent('change', { 'detail': value });
             element.dispatchEvent(event);
@@ -548,4 +831,11 @@
             }
         };
 
-    });
+    }
+
+    // export default {
+    //     set value(v) {
+    //                     setValue(v);
+    //                     redraw();
+    //                 }
+    // }
