@@ -2,6 +2,24 @@
 
 Web UI components for building synthesizer and midi tools and applications
 
+# knob
+
+### Usage
+
+    .knob {
+        width: 100px;
+    }
+
+    <svg class="knob" id="knob"></svg>
+
+    <script type="text/javascript">
+        var k = new knob(document.getElementById('knob'), {});        
+    </script>
+
+# envelope
+
+### Usage
+
 ## FIXME
 
 - Do not draw cursor on back arc.

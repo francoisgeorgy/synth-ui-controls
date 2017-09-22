@@ -24,8 +24,8 @@
             label: default_label,
             with_label: false,
             zero_at: 270.0,      // the 0 degree will be at 270 polar degrees (6 o'clock).
-            arc_min: 5.0,          // Angle in knob coordinates (0 at 6 0'clock)
-            arc_max: 355.0,         // Angle in knob coordinates (0 at 6 0'clock)
+            angle_min: 5.0,          // Angle in knob coordinates (0 at 6 0'clock)
+            angle_max: 355.0,         // Angle in knob coordinates (0 at 6 0'clock)
             cursor_start: 0,            // 20% of radius
             cursor_end: 0,            // 20% of radius
             cursor_dot_position: 75,         // % of radius (try 80), ignored when cursor_dot_size <= 0
@@ -41,7 +41,7 @@
             default_value: 0,
             value_min: 0.0,
             value_max: 100.0,
-            value_resolution: 1,      // null means ignore
+            value_step: 1,      // null means ignore
             snap_to_steps: false,        // TODO
             value_formatting: null      // TODO; callback function
         };
@@ -105,8 +105,8 @@
             console.group('INIT');
 
             // compute min and max angles:
-            minAngle = knobToPolarAngle(config.arc_min);
-            maxAngle = knobToPolarAngle(config.arc_max);
+            minAngle = knobToPolarAngle(config.angle_min);
+            maxAngle = knobToPolarAngle(config.angle_max);
 
             // compute initial viewBox coordinates (independent from browser resizing):
             // setValue(config.value_min);
@@ -142,17 +142,17 @@
 
         function getValue(polar) {
             let i = polarToKnobAngle(polar === undefined ? getPolarAngle() : polar);
-            let v = ((i - config.arc_min) / (config.arc_max - config.arc_min)) * (config.value_max - config.value_min) + config.value_min;
-            if (config.value_resolution === null) {
+            let v = ((i - config.angle_min) / (config.angle_max - config.angle_min)) * (config.value_max - config.value_min) + config.value_min;
+            if (config.value_step === null) {
                 return v;
             }
-            return Math.round(v / config.value_resolution) * config.value_resolution;
+            return Math.round(v / config.value_step) * config.value_step;
         }
 
         function setValue(v) {
             console.log(`setValue(${v})`);
             value = v;
-            let a = ((v - config.value_min) / (config.value_max - config.value_min)) * (config.arc_max - config.arc_min) + config.arc_min;
+            let a = ((v - config.value_min) / (config.value_max - config.value_min)) * (config.angle_max - config.angle_min) + config.angle_min;
             console.log(`changeValue(${v}) --> angle ${a}`);
             setPolarAngle(knobToPolarAngle(a));
         }
@@ -169,9 +169,9 @@
             let a = (angle + 360.0) % 360.0;    // we add 360 to handle negative values down to -360
             // apply boundaries
             let b = polarToKnobAngle(a);
-            if (b < config.arc_min) {
+            if (b < config.angle_min) {
                 a = minAngle;
-            } else if (b > config.arc_max) {
+            } else if (b > config.angle_max) {
                 a = maxAngle;
             }
             polarAngle = a;
@@ -328,7 +328,8 @@
 
         function draw() {
 
-            console.log('draw', container);
+            console.log('draw', container, container.nodeType, container.tagName, container.className);
+            console.dir(container);
 
             svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
 
