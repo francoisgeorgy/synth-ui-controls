@@ -58,8 +58,8 @@
             center_zero: false,
 
             default_value: 0,
-            value_min: 0.0,             // TODO: rename to min
-            value_max: 100.0,           // TODO: rename to max
+            value_min: 0.0,
+            value_max: 100.0,
             value_step: 1,              // null means ignore
 
             zero_at: 270.0,             // [deg] (polar) the 0 degree will be at 270 polar degrees (6 o'clock).
@@ -92,13 +92,13 @@
             dot_cursor: false,
             cursor_dot_position: 75,    // % of radius (try 80), ignored when cursor_dot_size <= 0
             cursor_dot_size: 0,         // % of radius (try 10)
-            cursor_only: false,         //TODO
+            cursor_only: false,
 
             // appearance:
             background: true,
             track_background: true,
             cursor: true,
-            linecap: 'round',       // https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/stroke-linecap
+            linecap: 'round',           // https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/stroke-linecap
 
             // CSS class names
             class_bg: 'knob-bg',
@@ -109,9 +109,11 @@
 
             snap_to_steps: false,       // TODO
 
+            // mouse wheel support:
             mouse_wheel_acceleration: 1,
 
             value_formatting: null,     // TODO; callback function
+
             format: function(v) {
                 return v;
             }
@@ -165,8 +167,9 @@
         let svg_value_text = null;
 
         //---------------------------------------------------------------------
-        // mouse drag support
+        // mouse support
         let targetRect;
+        let minDeltaY;
 
         //---------------------------------------------------------------------
         // true if the current knob value is different from the default value
@@ -191,21 +194,14 @@
             angle_min_polar = knobToPolarAngle(config.angle_min);
             angle_max_polar = knobToPolarAngle(config.angle_max);
 
-            // compute initial viewBox coordinates (independent from browser resizing) of the track starting point:
-            // let {x: arcStartX, y: arcStartY} = getViewboxCoord(angle_min_polar);
-
             // set initial angle:
             setValue(config.default_value);
 
-            // At the top of the knob, we leave a gap between the left and right tracks. These are the polar angles
-            // that delimit this gap.
+            // At the top of the knob, we leave a gap between the left and right tracks.
+            // These are the polar angles that delimit this gap.
             // Only used if center_zero=true.
             left_track_end_angle_polar = Math.acos(-(config.track_bg_width*1.5)/100.0) * 180.0 / Math.PI;
             right_track_start_angle_polar = Math.acos((config.track_bg_width*1.5)/100.0) * 180.0 / Math.PI;
-
-            // if (config.cursor_only) {
-            //     // TODO
-            // }
 
             mouse_wheel_direction = _isMacOS() ? -1 : 1;
 
@@ -265,7 +261,7 @@
             current_angle_polar = a;
 
             if (fireEvent && (current_angle_polar !== previous)) {
-                // does the change of angle affect the value?
+                // fire the event if the change of angle affect the value:
                 if (getValue(previous) !== getValue()) {
                     notifyChange();
                 }
@@ -308,7 +304,7 @@
          * @returns {number}
          */
         function polarToKnobAngle(angle) {
-            //TODO: CCW or CW. "-" for changing CCW to CW
+            // "-" for changing CCW to CW
             return (config.zero_at - angle + 360.0) % 360.0;    // we add 360 to handle negative values down to -360
         }
 
@@ -361,18 +357,17 @@
 
             // SVG d: "A rx,ry xAxisRotate LargeArcFlag,SweepFlag x,y".
             // SweepFlag is either 0 or 1, and determines if the arc should be swept in a clockwise (1), or anti-clockwise (0) direction
+            // ref: https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/d
 
             let {x: x0, y: y0} = getViewboxCoord(fromAngle, radius);
             let {x: x1, y: y1} = getViewboxCoord(toAngle, radius);
 
             let deltaAngle = (fromAngle - toAngle + 360.0) % 360.0;
 
-            if (TRACE) console.log("deltaAngle: " + deltaAngle);
-
             let largeArc = deltaAngle < 180.0 ? 0 : 1;
             let arcDirection = config.rotation === CW ? 1 : 0;
 
-            let p = `M ${x0},${y0} A ${radius},${radius} 0 ${largeArc},${arcDirection} ${x1},${y1}`; //TODO: add terminator
+            let p = `M ${x0},${y0} A ${radius},${radius} 0 ${largeArc},${arcDirection} ${x1},${y1}`;
 
             if (TRACE) console.log("arc: " + p);
 
@@ -435,7 +430,6 @@
             svg_back_disk.setAttribute("fill", `${config.back_color}`);
             svg_back_disk.setAttribute("stroke", `${config.back_border_color}`);
             svg_back_disk.setAttribute("stroke-width", `${config.back_border_width}`);
-            // svg_back_disk.setAttribute("stroke-linecap", config.linecap);
             svg_back_disk.setAttribute("class", config.class_bg);
             element.appendChild(svg_back_disk);
         }
@@ -571,6 +565,7 @@
          *
          */
         function redraw() {
+
             let p = getTrackPath();
             if (p) {
                 if (svg_track) {
@@ -592,7 +587,6 @@
             }
 
             p = getTrackCursor();
-            if (TRACE) console.log(p);
             if (p) {
                 if (svg_cursor) {
                     svg_cursor.setAttributeNS(null, "d", p);
@@ -706,8 +700,6 @@
             document.removeEventListener('mousemove', handleDrag, false);
             document.removeEventListener('mouseup', endDrag, false);
         }
-
-        let minDeltaY;
 
         /**
          *
