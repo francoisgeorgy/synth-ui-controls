@@ -66,18 +66,6 @@
             angle_min: 30.0,            // [deg] Angle in knob coordinates (0 at 6 0'clock)
             angle_max: 330.0,           // [deg] Angle in knob coordinates (0 at 6 0'clock)
 
-            radius: 40,
-
-            cursor_radius: 32,          // same unit as radius
-            cursor_length: 10,
-            cursor_width: 4,            // only when cursor_only is true
-            cursor_color: '#bbb',       // only when cursor_only is true
-
-            dot_cursor: false,
-            cursor_dot_position: 75,    // % of radius (try 80), ignored when cursor_dot_size <= 0
-            cursor_dot_size: 0,         // % of radius (try 10)
-            cursor_only: false,         //TODO
-
             // background disk:
             back_radius: 32,
             back_border_width: 1,
@@ -95,7 +83,33 @@
             track_color_init: '#999',
             track_color: '#bbb',
 
+            // cursor
+            cursor_radius: 18,          // same unit as radius
+            cursor_length: 10,
+            cursor_width: 4,
+            cursor_color: '#bbb',
+
+            dot_cursor: false,
+            cursor_dot_position: 75,    // % of radius (try 80), ignored when cursor_dot_size <= 0
+            cursor_dot_size: 0,         // % of radius (try 10)
+            cursor_only: false,         //TODO
+
+            // appearance:
+            background: true,
+            track_background: true,
+            cursor: true,
+            linecap: 'round',       // https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/stroke-linecap
+
+            // CSS class names
+            class_bg: 'knob-bg',
+            class_track_bg : 'knob-track-bg',
+            class_track : 'knob-track',
+            class_value : 'knob-value',
+            class_cursor : 'knob-cursor',
+
             snap_to_steps: false,       // TODO
+
+            mouse_wheel_acceleration: 1,
 
             value_formatting: null,     // TODO; callback function
             format: function(v) {
@@ -171,6 +185,8 @@
          */
         function init() {
 
+            console.group('init');
+
             // compute min and max angles in polar coord:
             angle_min_polar = knobToPolarAngle(config.angle_min);
             angle_max_polar = knobToPolarAngle(config.angle_max);
@@ -187,11 +203,13 @@
             left_track_end_angle_polar = Math.acos(-(config.track_bg_width*1.5)/100.0) * 180.0 / Math.PI;
             right_track_start_angle_polar = Math.acos((config.track_bg_width*1.5)/100.0) * 180.0 / Math.PI;
 
-            if (config.cursor_only) {
-                // TODO
-            }
+            // if (config.cursor_only) {
+            //     // TODO
+            // }
 
             mouse_wheel_direction = _isMacOS() ? -1 : 1;
+
+            console.groupEnd();
         }
 
         /**
@@ -390,18 +408,25 @@
             return p;
         }
 
-        /**
-         *
-         */
-        function draw_back() {
+        function draw_init() {
 
             // For the use of null argument with setAttributeNS, see https://developer.mozilla.org/en-US/docs/Web/SVG/Namespaces_Crash_Course#Scripting_in_namespaced_XML
 
             element.setAttributeNS("http://www.w3.org/2000/xmlns/", "xmlns:xlink", "http://www.w3.org/1999/xlink");
             element.setAttributeNS(null, "viewBox", `0 0 ${VIEWBOX_WIDTH} ${VIEWBOX_HEIGHT}`);
+        }
+
+        /**
+         *
+         */
+        function draw_background() {
+
+            if (!config.background) return;
+
+            // For the use of null argument with setAttributeNS, see https://developer.mozilla.org/en-US/docs/Web/SVG/Namespaces_Crash_Course#Scripting_in_namespaced_XML
 
             //
-            // back circle:
+            // back disk:
             //
             svg_back_disk = document.createElementNS(NS, "circle");
             svg_back_disk.setAttributeNS(null, "cx", `${HALF_WIDTH}`);
@@ -410,9 +435,19 @@
             svg_back_disk.setAttribute("fill", `${config.back_color}`);
             svg_back_disk.setAttribute("stroke", `${config.back_border_color}`);
             svg_back_disk.setAttribute("stroke-width", `${config.back_border_width}`);
-            svg_back_disk.setAttribute("stroke-linecap", "round");
-            svg_back_disk.setAttribute("class", "knob-back");
+            // svg_back_disk.setAttribute("stroke-linecap", config.linecap);
+            svg_back_disk.setAttribute("class", config.class_bg);
             element.appendChild(svg_back_disk);
+        }
+
+        /**
+         *
+         */
+        function draw_track_background() {
+
+            // For the use of null argument with setAttributeNS, see https://developer.mozilla.org/en-US/docs/Web/SVG/Namespaces_Crash_Course#Scripting_in_namespaced_XML
+
+            if (!config.track_background) return;
 
             //
             // track background:
@@ -421,33 +456,33 @@
 
                 // left track background
                 svg_track_bg_left = document.createElementNS(NS, "path");
-                svg_track_bg_left.setAttributeNS(null, "d", getArc(angle_min_polar, left_track_end_angle_polar, config.track_radius));
+                svg_track_bg_left.setAttributeNS(null, "d", getArc(angle_min_polar, left_track_end_angle_polar, config.track_bg_radius));
                 svg_track_bg_left.setAttribute("stroke", `${config.track_bg_color}`);
                 svg_track_bg_left.setAttribute("stroke-width", `${config.track_bg_width}`);
-                svg_track_bg_left.setAttribute("stroke-linecap", "round");
+                svg_track_bg_left.setAttribute("stroke-linecap", config.linecap);
                 svg_track_bg_left.setAttribute("fill", "transparent");
-                svg_track_bg_left.setAttribute("class", "knob-back-track");
+                svg_track_bg_left.setAttribute("class", config.class_track_bg);
                 element.appendChild(svg_track_bg_left);
 
                 // right track background
                 svg_track_bg_right = document.createElementNS(NS, "path");
-                svg_track_bg_right.setAttributeNS(null, "d", getArc(right_track_start_angle_polar, angle_max_polar, config.track_radius));
+                svg_track_bg_right.setAttributeNS(null, "d", getArc(right_track_start_angle_polar, angle_max_polar, config.track_bg_radius));
                 svg_track_bg_right.setAttribute("stroke", `${config.track_bg_color}`);
                 svg_track_bg_right.setAttribute("stroke-width", `${config.track_bg_width}`);
-                svg_track_bg_right.setAttribute("stroke-linecap", "round");
+                svg_track_bg_right.setAttribute("stroke-linecap", config.linecap);
                 svg_track_bg_right.setAttribute("fill", "transparent");
-                svg_track_bg_right.setAttribute("class", "knob-back-track");
+                svg_track_bg_right.setAttribute("class", config.class_track_bg);
                 element.appendChild(svg_track_bg_right);
 
             } else {
 
                 svg_track_bg = document.createElementNS(NS, "path");
-                svg_track_bg.setAttributeNS(null, "d", getArc(angle_min_polar, angle_max_polar, config.track_radius));
+                svg_track_bg.setAttributeNS(null, "d", getArc(angle_min_polar, angle_max_polar, config.track_bg_radius));
                 svg_track_bg.setAttribute("stroke", `${config.track_bg_color}`);
                 svg_track_bg.setAttribute("stroke-width", `${config.track_bg_width}`);
                 svg_track_bg.setAttribute("fill", "transparent");
-                svg_track_bg.setAttribute("stroke-linecap", "round");
-                svg_track_bg.setAttribute("class", "knob-back-track");
+                svg_track_bg.setAttribute("stroke-linecap", config.linecap);
+                svg_track_bg.setAttribute("class", config.class_track_bg);
                 element.appendChild(svg_track_bg);
 
             }
@@ -457,6 +492,7 @@
          *
          */
         function draw_track() {
+            if (config.cursor_only) return;
             let p = getTrackPath();
             if (p) {
                 svg_track = document.createElementNS(NS, "path");
@@ -464,8 +500,8 @@
                 svg_track.setAttribute("stroke", `${config.track_color_init}`);
                 svg_track.setAttribute("stroke-width", `${config.track_width}`);
                 svg_track.setAttribute("fill", "transparent");
-                svg_track.setAttribute("stroke-linecap", "round");
-                svg_track.setAttribute("class", "knob-track");
+                svg_track.setAttribute("stroke-linecap", config.linecap);
+                svg_track.setAttribute("class", config.class_track);
                 element.appendChild(svg_track);
             }
         }
@@ -476,8 +512,10 @@
          */
         function getTrackCursor() {
             let a = current_angle_polar;
-            let from = getViewboxCoord(a, HALF_HEIGHT - config.cursor_radius);
-            let to = getViewboxCoord(a, HALF_HEIGHT - config.cursor_radius + config.cursor_length);
+            // let from = getViewboxCoord(a, HALF_WIDTH - config.cursor_radius);
+            // let to = getViewboxCoord(a, HALF_WIDTH - config.cursor_radius + config.cursor_length);
+            let from = getViewboxCoord(a, config.cursor_radius);
+            let to = getViewboxCoord(a, config.cursor_radius + config.cursor_length);
             return `M ${from.x},${from.y} L ${to.x},${to.y}`;
         }
 
@@ -485,6 +523,8 @@
          *
          */
         function draw_cursor() {
+
+            if (!config.cursor) return;
 
             // TODO: dot cursor
 
@@ -495,8 +535,8 @@
                 svg_cursor.setAttribute("stroke", `${config.cursor_color}`);
                 svg_cursor.setAttribute("stroke-width", `${config.cursor_width}`);
                 svg_cursor.setAttribute("fill", "transparent");
-                svg_cursor.setAttribute("stroke-linecap", "round");
-                svg_cursor.setAttribute("class", "knob-cursor");
+                svg_cursor.setAttribute("stroke-linecap", config.linecap);
+                svg_cursor.setAttribute("class", config.class_cursor);
                 element.appendChild(svg_cursor);
             }
         }
@@ -510,7 +550,7 @@
             svg_value_text.setAttributeNS(null, "y", `${HALF_HEIGHT + 5}`);
             svg_value_text.setAttribute("text-anchor", "middle");
             svg_value_text.setAttribute("cursor", "default");
-            svg_value_text.setAttribute("class", "knob-value");
+            svg_value_text.setAttribute("class", config.class_value);
             svg_value_text.textContent = getDisplayValue();
             element.appendChild(svg_value_text);
         }
@@ -519,7 +559,9 @@
          *
          */
         function draw() {
-            draw_back();
+            draw_init();
+            draw_background();
+            draw_track_background();
             draw_track();
             draw_cursor();
             draw_value();
@@ -694,7 +736,7 @@
                 }
             }
 
-            incPolarAngle(mouse_wheel_direction * (dy / minDeltaY));     // TODO: make mousewheel direction configurable
+            incPolarAngle(mouse_wheel_direction * (dy / minDeltaY) * config.mouse_wheel_acceleration);     // TODO: make mousewheel direction configurable
 
             // TODO: timing --> speed
             // https://stackoverflow.com/questions/22593286/detect-measure-scroll-speed
