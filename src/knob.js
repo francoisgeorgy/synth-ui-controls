@@ -3,6 +3,11 @@
 
     export default function(elem, conf) {
 
+        // Like a real knob, it's the knob's position that determines the knob's value.
+        // Therefore, the value is computed from the knob's position (angle).
+        // However, the user has the possibility to directly set the value and in that case
+        // the knob's position will be computed from the value and the knob redrawn accordingly.
+
         //
         // All angles in method parameters are in [degrees]
         //
@@ -31,7 +36,7 @@
         // Formula: polar-angle = 270 - knob-angle
         //
 
-        const TRACE = true;    // when true, will log more details in the console
+        const TRACE = false;    // when true, will log more details in the console
 
         // It is faster to access a property than to access a variable...
         // See https://jsperf.com/vars-vs-props-speed-comparison/1
@@ -40,11 +45,21 @@
         const CW = true;    // clock-wise
         const CCW = !CW;    // counter clock-wise
 
-        const element = elem;    // DOM element
+        let svg_element;
+        console.log(elem.nodeName);
+        if (elem.nodeName.toLowerCase() === 'svg') {
+            svg_element = elem;
+        } else {
+            svg_element = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+            elem.appendChild(svg_element);
+        }
+
+        // const svg_element = elem;    // DOM element
 
         // For the user convenience, the label can be set with the "data-label" attribute.
         // If another label is set in data-config then this later definition will override data-label.
-        let default_label = element.dataset.label !== undefined ? element.dataset.label : '';
+        // let default_label = svg_element.dataset.label !== undefined ? svg_element.dataset.label : '';
+        let default_label = elem.dataset.label !== undefined ? elem.dataset.label : '';
 
         let defaults = {
 
@@ -121,7 +136,7 @@
 
         //---------------------------------------------------------------------
         // Merge user config with default config:
-        let data_config = JSON.parse(element.dataset.config || '{}');
+        let data_config = JSON.parse(elem.dataset.config || '{}');
         let config = Object.assign({}, defaults, conf, data_config);
 
         //---------------------------------------------------------------------
@@ -188,8 +203,6 @@
          */
         function init() {
 
-            console.group('init');
-
             // compute min and max angles in polar coord:
             angle_min_polar = knobToPolarAngle(config.angle_min);
             angle_max_polar = knobToPolarAngle(config.angle_max);
@@ -203,9 +216,7 @@
             left_track_end_angle_polar = Math.acos(-(config.track_bg_width*1.5)/100.0) * 180.0 / Math.PI;
             right_track_start_angle_polar = Math.acos((config.track_bg_width*1.5)/100.0) * 180.0 / Math.PI;
 
-            mouse_wheel_direction = _isMacOS() ? -1 : 1;
-
-            console.groupEnd();
+            // mouse_wheel_direction = _isMacOS() ? -1 : 1; //TODO: really necessary?
         }
 
         /**
@@ -237,21 +248,25 @@
          * @param v
          */
         function setValue(v) {
-            value = v;
+            if (v < config.value_min) {
+                value = config.value_min;
+            } else if (v > config.value_max) {
+                value = config.value_max;
+            } else {
+                value = v;
+            }
             let a = ((v - config.value_min) / (config.value_max - config.value_min)) * (config.angle_max - config.angle_min) + config.angle_min;
             setPolarAngle(knobToPolarAngle(a));
+            return true;
         }
 
         /**
          * Angle in degrees in polar coordinates (0 degrees at 3 o'clock)
          */
         function setPolarAngle(angle, fireEvent) {
-
             let previous = current_angle_polar;
-
             let a = (angle + 360.0) % 360.0;    // we add 360 to handle negative values down to -360
-
-            // apply boundaries
+            // apply boundaries:
             let b = polarToKnobAngle(a);
             if (b < config.angle_min) {
                 a = angle_min_polar;
@@ -259,39 +274,33 @@
                 a = angle_max_polar;
             }
             current_angle_polar = a;
-
             if (fireEvent && (current_angle_polar !== previous)) {
                 // fire the event if the change of angle affect the value:
                 if (getValue(previous) !== getValue()) {
                     notifyChange();
                 }
             }
-
         }
 
         /**
-         *
+         * Increment (or decrement if the increment is negative) the knob's angle.
          * @param increment
          */
-        function incPolarAngle(increment) {
-            setPolarAngle(current_angle_polar + increment, true);
+        function incAngle(increment) {
+            let new_angle = polarToKnobAngle(current_angle_polar) + increment;
+            if (new_angle < config.angle_min) {
+                setPolarAngle(angle_min_polar);
+            } else if (new_angle > config.angle_max) {
+                setPolarAngle(angle_max_polar);
+            } else {
+                setPolarAngle(knobToPolarAngle(new_angle));
+            }
         }
-
-        /**
-         * Angle in degrees in polar coordinates (0 degrees at 3 o'clock)
-         */
-        // function getPolarAngle() {
-        //     return current_angle_polar;
-        // }
 
         /**
          * Return polar coordinates angle from our "knob coordinates" angle
          */
         function knobToPolarAngle(angle) {
-
-            // knobToPolarAngle 30 -> 240
-            // knobToPolarAngle 330 -> 300
-
             let a = config.zero_at - angle;
             if (a < 0) a = a + 360.0;
             if (TRACE) console.log(`knobToPolarAngle ${angle} -> ${a}`);
@@ -306,296 +315,6 @@
         function polarToKnobAngle(angle) {
             // "-" for changing CCW to CW
             return (config.zero_at - angle + 360.0) % 360.0;    // we add 360 to handle negative values down to -360
-        }
-
-        /**
-         * Return viewBox X,Y coordinates
-         * @param angle in [degree]
-         * @param radius; defaults to config.radius
-         * @returns {{x: number, y: number}}
-         */
-        function getViewboxCoord(angle, radius) {
-            let a = angle * Math.PI / 180.0;
-            let r = radius || config.track_radius;
-            let x = Math.cos(a) * r;
-            let y = Math.sin(a) * r;
-            return {
-                x: config.rotation === CW ? (HALF_WIDTH + x) : (HALF_WIDTH - x),
-                y: HALF_HEIGHT - y
-            }
-        }
-
-        /**
-         * angle is in degrees (polar, 0 at 3 o'clock)
-         */
-/*
-        function getDotCursor(endAngle) {
-            let a_rad = endAngle * Math.PI / 180.0;
-            // if (config.cursor_dot > 0) {
-                let dot_position = config.radius * config.cursor_dot_position / 100.0;  // cursor is in percents
-                let x = getViewboxX(Math.cos(a_rad) * dot_position);
-                let y = getViewboxY(Math.sin(a_rad) * dot_position);
-                let r = config.radius * config.cursor_dot_size / 2 / 100.0;
-            // }
-            return {
-                cx: x,
-                cy: y,
-                r: r
-            };
-        }
-*/
-
-        /**
-         *
-         * @param fromAngle in [degree]
-         * @param toAngle in [degree] (polar, 0 at 3 o'clock)
-         * @param radius (polar, 0 at 3 o'clock)
-         */
-        function getArc(fromAngle, toAngle, radius) {
-
-            if (TRACE) console.log(`getArc(${fromAngle}, ${toAngle}, ${radius})`);
-
-            // SVG d: "A rx,ry xAxisRotate LargeArcFlag,SweepFlag x,y".
-            // SweepFlag is either 0 or 1, and determines if the arc should be swept in a clockwise (1), or anti-clockwise (0) direction
-            // ref: https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/d
-
-            let {x: x0, y: y0} = getViewboxCoord(fromAngle, radius);
-            let {x: x1, y: y1} = getViewboxCoord(toAngle, radius);
-
-            let deltaAngle = (fromAngle - toAngle + 360.0) % 360.0;
-
-            let largeArc = deltaAngle < 180.0 ? 0 : 1;
-            let arcDirection = config.rotation === CW ? 1 : 0;
-
-            let p = `M ${x0},${y0} A ${radius},${radius} 0 ${largeArc},${arcDirection} ${x1},${y1}`;
-
-            if (TRACE) console.log("arc: " + p);
-
-            return p;
-        }
-
-        /**
-         *
-         * @returns {*}
-         */
-        function getTrackPath() {
-
-            let p = null;
-
-            if (config.center_zero) {
-
-                let a = current_angle_polar > config.zero_at ? (current_angle_polar - 360.0) : current_angle_polar;
-
-                console.log(`split: v=${getValue()}, c=${current_angle_polar}, a=${a}, left=${left_track_end_angle_polar}, right=${right_track_start_angle_polar}`);
-
-                if (a > left_track_end_angle_polar) {
-                    p = getArc(a, left_track_end_angle_polar, config.track_radius);
-                } else if (a < right_track_start_angle_polar) {
-                    p = getArc(right_track_start_angle_polar, a, config.track_radius);
-                } else {
-                    // track is not drawn when the value is at center
-                }
-
-            } else {
-                p = getArc(angle_min_polar, current_angle_polar, config.track_radius);
-            }
-
-            return p;
-        }
-
-        function draw_init() {
-
-            // For the use of null argument with setAttributeNS, see https://developer.mozilla.org/en-US/docs/Web/SVG/Namespaces_Crash_Course#Scripting_in_namespaced_XML
-
-            element.setAttributeNS("http://www.w3.org/2000/xmlns/", "xmlns:xlink", "http://www.w3.org/1999/xlink");
-            element.setAttributeNS(null, "viewBox", `0 0 ${VIEWBOX_WIDTH} ${VIEWBOX_HEIGHT}`);
-        }
-
-        /**
-         *
-         */
-        function draw_background() {
-
-            if (!config.background) return;
-
-            // For the use of null argument with setAttributeNS, see https://developer.mozilla.org/en-US/docs/Web/SVG/Namespaces_Crash_Course#Scripting_in_namespaced_XML
-
-            //
-            // back disk:
-            //
-            svg_back_disk = document.createElementNS(NS, "circle");
-            svg_back_disk.setAttributeNS(null, "cx", `${HALF_WIDTH}`);
-            svg_back_disk.setAttributeNS(null, "cy", `${HALF_HEIGHT}`);
-            svg_back_disk.setAttributeNS(null, "r", `${config.back_radius}`);
-            svg_back_disk.setAttribute("fill", `${config.back_color}`);
-            svg_back_disk.setAttribute("stroke", `${config.back_border_color}`);
-            svg_back_disk.setAttribute("stroke-width", `${config.back_border_width}`);
-            svg_back_disk.setAttribute("class", config.class_bg);
-            element.appendChild(svg_back_disk);
-        }
-
-        /**
-         *
-         */
-        function draw_track_background() {
-
-            // For the use of null argument with setAttributeNS, see https://developer.mozilla.org/en-US/docs/Web/SVG/Namespaces_Crash_Course#Scripting_in_namespaced_XML
-
-            if (!config.track_background) return;
-
-            //
-            // track background:
-            //
-            if (config.center_zero) {
-
-                // left track background
-                svg_track_bg_left = document.createElementNS(NS, "path");
-                svg_track_bg_left.setAttributeNS(null, "d", getArc(angle_min_polar, left_track_end_angle_polar, config.track_bg_radius));
-                svg_track_bg_left.setAttribute("stroke", `${config.track_bg_color}`);
-                svg_track_bg_left.setAttribute("stroke-width", `${config.track_bg_width}`);
-                svg_track_bg_left.setAttribute("stroke-linecap", config.linecap);
-                svg_track_bg_left.setAttribute("fill", "transparent");
-                svg_track_bg_left.setAttribute("class", config.class_track_bg);
-                element.appendChild(svg_track_bg_left);
-
-                // right track background
-                svg_track_bg_right = document.createElementNS(NS, "path");
-                svg_track_bg_right.setAttributeNS(null, "d", getArc(right_track_start_angle_polar, angle_max_polar, config.track_bg_radius));
-                svg_track_bg_right.setAttribute("stroke", `${config.track_bg_color}`);
-                svg_track_bg_right.setAttribute("stroke-width", `${config.track_bg_width}`);
-                svg_track_bg_right.setAttribute("stroke-linecap", config.linecap);
-                svg_track_bg_right.setAttribute("fill", "transparent");
-                svg_track_bg_right.setAttribute("class", config.class_track_bg);
-                element.appendChild(svg_track_bg_right);
-
-            } else {
-
-                svg_track_bg = document.createElementNS(NS, "path");
-                svg_track_bg.setAttributeNS(null, "d", getArc(angle_min_polar, angle_max_polar, config.track_bg_radius));
-                svg_track_bg.setAttribute("stroke", `${config.track_bg_color}`);
-                svg_track_bg.setAttribute("stroke-width", `${config.track_bg_width}`);
-                svg_track_bg.setAttribute("fill", "transparent");
-                svg_track_bg.setAttribute("stroke-linecap", config.linecap);
-                svg_track_bg.setAttribute("class", config.class_track_bg);
-                element.appendChild(svg_track_bg);
-
-            }
-        }
-
-        /**
-         *
-         */
-        function draw_track() {
-            if (config.cursor_only) return;
-            let p = getTrackPath();
-            if (p) {
-                svg_track = document.createElementNS(NS, "path");
-                svg_track.setAttributeNS(null, "d", p);
-                svg_track.setAttribute("stroke", `${config.track_color_init}`);
-                svg_track.setAttribute("stroke-width", `${config.track_width}`);
-                svg_track.setAttribute("fill", "transparent");
-                svg_track.setAttribute("stroke-linecap", config.linecap);
-                svg_track.setAttribute("class", config.class_track);
-                element.appendChild(svg_track);
-            }
-        }
-
-        /**
-         *
-         * @returns {string}
-         */
-        function getTrackCursor() {
-            let a = current_angle_polar;
-            // let from = getViewboxCoord(a, HALF_WIDTH - config.cursor_radius);
-            // let to = getViewboxCoord(a, HALF_WIDTH - config.cursor_radius + config.cursor_length);
-            let from = getViewboxCoord(a, config.cursor_radius);
-            let to = getViewboxCoord(a, config.cursor_radius + config.cursor_length);
-            return `M ${from.x},${from.y} L ${to.x},${to.y}`;
-        }
-
-        /**
-         *
-         */
-        function draw_cursor() {
-
-            if (!config.cursor) return;
-
-            // TODO: dot cursor
-
-            let p = getTrackCursor();
-            if (p) {
-                svg_cursor = document.createElementNS(NS, "path");
-                svg_cursor.setAttributeNS(null, "d", p);
-                svg_cursor.setAttribute("stroke", `${config.cursor_color}`);
-                svg_cursor.setAttribute("stroke-width", `${config.cursor_width}`);
-                svg_cursor.setAttribute("fill", "transparent");
-                svg_cursor.setAttribute("stroke-linecap", config.linecap);
-                svg_cursor.setAttribute("class", config.class_cursor);
-                element.appendChild(svg_cursor);
-            }
-        }
-
-        /**
-         *
-         */
-        function draw_value() {
-            svg_value_text = document.createElementNS(NS, "text");
-            svg_value_text.setAttributeNS(null, "x", `${HALF_WIDTH}`);
-            svg_value_text.setAttributeNS(null, "y", `${HALF_HEIGHT + 5}`);
-            svg_value_text.setAttribute("text-anchor", "middle");
-            svg_value_text.setAttribute("cursor", "default");
-            svg_value_text.setAttribute("class", config.class_value);
-            svg_value_text.textContent = getDisplayValue();
-            element.appendChild(svg_value_text);
-        }
-
-        /**
-         *
-         */
-        function draw() {
-            draw_init();
-            draw_background();
-            draw_track_background();
-            draw_track();
-            draw_cursor();
-            draw_value();
-        }
-
-        /**
-         *
-         */
-        function redraw() {
-
-            let p = getTrackPath();
-            if (p) {
-                if (svg_track) {
-                    svg_track.setAttributeNS(null, "d", p);
-                } else {
-                    draw_track();
-                }
-            } else {
-                if (svg_track) {
-                    svg_track.setAttributeNS(null, "d", "");    // we hide the track
-                }
-            }
-
-            if (!has_changed) {
-                has_changed = getValue() !== config.default_value;
-                if (has_changed) {
-                    svg_track.setAttribute("stroke", `${config.track_color}`);
-                }
-            }
-
-            p = getTrackCursor();
-            if (p) {
-                if (svg_cursor) {
-                    svg_cursor.setAttributeNS(null, "d", p);
-                }
-            }
-
-            if (svg_value_text) {
-                svg_value_text.textContent = getDisplayValue();
-            }
         }
 
         /**
@@ -665,7 +384,7 @@
             //      https://developer.mozilla.org/en/docs/Web/API/Element/getBoundingClientRect
 
             // targetRect = currentTarget.getBoundingClientRect(); // currentTarget must be the <svg...> object
-            targetRect = element.getBoundingClientRect();
+            targetRect = svg_element.getBoundingClientRect();
 
             // Note: we must take the boundingClientRect of the <svg> and not the <path> because the <path> bounding rect
             //       is not constant because it encloses the current arc.
@@ -728,9 +447,11 @@
                 }
             }
 
-            incPolarAngle(mouse_wheel_direction * (dy / minDeltaY) * config.mouse_wheel_acceleration);     // TODO: make mousewheel direction configurable
+            // console.log(`wheel inc ${dy} / ${mouse_wheel_direction * minDeltaY} = ${dy / minDeltaY * mouse_wheel_direction}`);
 
-            // TODO: timing --> speed
+            incAngle(dy / minDeltaY * mouse_wheel_direction * mouse_wheel_direction);
+
+            // TODO: mouse speed detection
             // https://stackoverflow.com/questions/22593286/detect-measure-scroll-speed
 
             redraw();
@@ -742,10 +463,10 @@
          *
          */
         function attachEventHandlers() {
-            element.addEventListener("mousedown", function(e) {
+            svg_element.addEventListener("mousedown", function(e) {
                 startDrag(e);
             });
-            element.addEventListener("wheel", function(e) {
+            svg_element.addEventListener("wheel", function(e) {
                 mouseWheelHandler(e);
             });
         }
@@ -757,7 +478,7 @@
             if (TRACE) console.log('knob value has changed');
             let value = getValue();     // TODO: cache the value
             let event = new CustomEvent('change', { 'detail': value });
-            element.dispatchEvent(event);
+            svg_element.dispatchEvent(event);
         }
 
         /**
@@ -767,6 +488,297 @@
          */
         function _isMacOS() {
             return ['Macintosh', 'MacIntel', 'MacPPC', 'Mac68K'].indexOf(window.navigator.platform) !== -1;
+        }
+        /**
+         * Return viewBox X,Y coordinates
+         * @param angle in [degree]
+         * @param radius; defaults to config.radius
+         * @returns {{x: number, y: number}}
+         */
+        function getViewboxCoord(angle, radius) {
+            let a = angle * Math.PI / 180.0;
+            let r = radius || config.track_radius;
+            let x = Math.cos(a) * r;
+            let y = Math.sin(a) * r;
+            return {
+                x: config.rotation === CW ? (HALF_WIDTH + x) : (HALF_WIDTH - x),
+                y: HALF_HEIGHT - y
+            }
+        }
+
+        /**
+         * angle is in degrees (polar, 0 at 3 o'clock)
+         */
+        /*
+                function getDotCursor(endAngle) {
+                    let a_rad = endAngle * Math.PI / 180.0;
+                    // if (config.cursor_dot > 0) {
+                        let dot_position = config.radius * config.cursor_dot_position / 100.0;  // cursor is in percents
+                        let x = getViewboxX(Math.cos(a_rad) * dot_position);
+                        let y = getViewboxY(Math.sin(a_rad) * dot_position);
+                        let r = config.radius * config.cursor_dot_size / 2 / 100.0;
+                    // }
+                    return {
+                        cx: x,
+                        cy: y,
+                        r: r
+                    };
+                }
+        */
+
+        /**
+         *
+         * @param fromAngle in [degree]
+         * @param toAngle in [degree] (polar, 0 at 3 o'clock)
+         * @param radius (polar, 0 at 3 o'clock)
+         */
+        function getArc(fromAngle, toAngle, radius) {
+
+            if (TRACE) console.log(`getArc(${fromAngle}, ${toAngle}, ${radius})`);
+
+            // SVG d: "A rx,ry xAxisRotate LargeArcFlag,SweepFlag x,y".
+            // SweepFlag is either 0 or 1, and determines if the arc should be swept in a clockwise (1), or anti-clockwise (0) direction
+            // ref: https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/d
+
+            let {x: x0, y: y0} = getViewboxCoord(fromAngle, radius);
+            let {x: x1, y: y1} = getViewboxCoord(toAngle, radius);
+
+            let deltaAngle = (fromAngle - toAngle + 360.0) % 360.0;
+
+            let largeArc = deltaAngle < 180.0 ? 0 : 1;
+            let arcDirection = config.rotation === CW ? 1 : 0;
+
+            let p = `M ${x0},${y0} A ${radius},${radius} 0 ${largeArc},${arcDirection} ${x1},${y1}`;
+
+            if (TRACE) console.log("arc: " + p);
+
+            return p;
+        }
+
+        /**
+         *
+         * @returns {*}
+         */
+        function getTrackPath() {
+
+            let p = null;
+
+            if (config.center_zero) {
+
+                let a = current_angle_polar > config.zero_at ? (current_angle_polar - 360.0) : current_angle_polar;
+
+                if (TRACE) console.log(`split: v=${getValue()}, c=${current_angle_polar}, a=${a}, left=${left_track_end_angle_polar}, right=${right_track_start_angle_polar}`);
+
+                if (a > left_track_end_angle_polar) {
+                    p = getArc(a, left_track_end_angle_polar, config.track_radius);
+                } else if (a < right_track_start_angle_polar) {
+                    p = getArc(right_track_start_angle_polar, a, config.track_radius);
+                } else {
+                    // track is not drawn when the value is at center
+                }
+
+            } else {
+                p = getArc(angle_min_polar, current_angle_polar, config.track_radius);
+            }
+
+            return p;
+        }
+
+        function draw_init() {
+
+            // For the use of null argument with setAttributeNS, see https://developer.mozilla.org/en-US/docs/Web/SVG/Namespaces_Crash_Course#Scripting_in_namespaced_XML
+
+            svg_element.setAttributeNS("http://www.w3.org/2000/xmlns/", "xmlns:xlink", "http://www.w3.org/1999/xlink");
+            svg_element.setAttributeNS(null, "viewBox", `0 0 ${VIEWBOX_WIDTH} ${VIEWBOX_HEIGHT}`);
+        }
+
+        /**
+         *
+         */
+        function draw_background() {
+
+            if (!config.background) return;
+
+            // For the use of null argument with setAttributeNS, see https://developer.mozilla.org/en-US/docs/Web/SVG/Namespaces_Crash_Course#Scripting_in_namespaced_XML
+
+            //
+            // back disk:
+            //
+            svg_back_disk = document.createElementNS(NS, "circle");
+            svg_back_disk.setAttributeNS(null, "cx", `${HALF_WIDTH}`);
+            svg_back_disk.setAttributeNS(null, "cy", `${HALF_HEIGHT}`);
+            svg_back_disk.setAttributeNS(null, "r", `${config.back_radius}`);
+            svg_back_disk.setAttribute("fill", `${config.back_color}`);
+            svg_back_disk.setAttribute("stroke", `${config.back_border_color}`);
+            svg_back_disk.setAttribute("stroke-width", `${config.back_border_width}`);
+            svg_back_disk.setAttribute("class", config.class_bg);
+            svg_element.appendChild(svg_back_disk);
+        }
+
+        /**
+         *
+         */
+        function draw_track_background() {
+
+            // For the use of null argument with setAttributeNS, see https://developer.mozilla.org/en-US/docs/Web/SVG/Namespaces_Crash_Course#Scripting_in_namespaced_XML
+
+            if (!config.track_background) return;
+
+            //
+            // track background:
+            //
+            if (config.center_zero) {
+
+                // left track background
+                svg_track_bg_left = document.createElementNS(NS, "path");
+                svg_track_bg_left.setAttributeNS(null, "d", getArc(angle_min_polar, left_track_end_angle_polar, config.track_bg_radius));
+                svg_track_bg_left.setAttribute("stroke", `${config.track_bg_color}`);
+                svg_track_bg_left.setAttribute("stroke-width", `${config.track_bg_width}`);
+                svg_track_bg_left.setAttribute("stroke-linecap", config.linecap);
+                svg_track_bg_left.setAttribute("fill", "transparent");
+                svg_track_bg_left.setAttribute("class", config.class_track_bg);
+                svg_element.appendChild(svg_track_bg_left);
+
+                // right track background
+                svg_track_bg_right = document.createElementNS(NS, "path");
+                svg_track_bg_right.setAttributeNS(null, "d", getArc(right_track_start_angle_polar, angle_max_polar, config.track_bg_radius));
+                svg_track_bg_right.setAttribute("stroke", `${config.track_bg_color}`);
+                svg_track_bg_right.setAttribute("stroke-width", `${config.track_bg_width}`);
+                svg_track_bg_right.setAttribute("stroke-linecap", config.linecap);
+                svg_track_bg_right.setAttribute("fill", "transparent");
+                svg_track_bg_right.setAttribute("class", config.class_track_bg);
+                svg_element.appendChild(svg_track_bg_right);
+
+            } else {
+
+                svg_track_bg = document.createElementNS(NS, "path");
+                svg_track_bg.setAttributeNS(null, "d", getArc(angle_min_polar, angle_max_polar, config.track_bg_radius));
+                svg_track_bg.setAttribute("stroke", `${config.track_bg_color}`);
+                svg_track_bg.setAttribute("stroke-width", `${config.track_bg_width}`);
+                svg_track_bg.setAttribute("fill", "transparent");
+                svg_track_bg.setAttribute("stroke-linecap", config.linecap);
+                svg_track_bg.setAttribute("class", config.class_track_bg);
+                svg_element.appendChild(svg_track_bg);
+
+            }
+        }
+
+        /**
+         *
+         */
+        function draw_track() {
+            if (config.cursor_only) return;
+            let p = getTrackPath();
+            if (p) {
+                svg_track = document.createElementNS(NS, "path");
+                svg_track.setAttributeNS(null, "d", p);
+                svg_track.setAttribute("stroke", `${config.track_color_init}`);
+                svg_track.setAttribute("stroke-width", `${config.track_width}`);
+                svg_track.setAttribute("fill", "transparent");
+                svg_track.setAttribute("stroke-linecap", config.linecap);
+                svg_track.setAttribute("class", config.class_track);
+                svg_element.appendChild(svg_track);
+            }
+        }
+
+        /**
+         *
+         * @returns {string}
+         */
+        function getTrackCursor() {
+            let a = current_angle_polar;
+            // let from = getViewboxCoord(a, HALF_WIDTH - config.cursor_radius);
+            // let to = getViewboxCoord(a, HALF_WIDTH - config.cursor_radius + config.cursor_length);
+            let from = getViewboxCoord(a, config.cursor_radius);
+            let to = getViewboxCoord(a, config.cursor_radius + config.cursor_length);
+            return `M ${from.x},${from.y} L ${to.x},${to.y}`;
+        }
+
+        /**
+         *
+         */
+        function draw_cursor() {
+
+            if (!config.cursor) return;
+
+            // TODO: dot cursor
+
+            let p = getTrackCursor();
+            if (p) {
+                svg_cursor = document.createElementNS(NS, "path");
+                svg_cursor.setAttributeNS(null, "d", p);
+                svg_cursor.setAttribute("stroke", `${config.cursor_color}`);
+                svg_cursor.setAttribute("stroke-width", `${config.cursor_width}`);
+                svg_cursor.setAttribute("fill", "transparent");
+                svg_cursor.setAttribute("stroke-linecap", config.linecap);
+                svg_cursor.setAttribute("class", config.class_cursor);
+                svg_element.appendChild(svg_cursor);
+            }
+        }
+
+        /**
+         *
+         */
+        function draw_value() {
+            svg_value_text = document.createElementNS(NS, "text");
+            svg_value_text.setAttributeNS(null, "x", `${HALF_WIDTH}`);
+            svg_value_text.setAttributeNS(null, "y", `${HALF_HEIGHT + 5}`);
+            svg_value_text.setAttribute("text-anchor", "middle");
+            svg_value_text.setAttribute("cursor", "default");
+            svg_value_text.setAttribute("class", config.class_value);
+            svg_value_text.textContent = getDisplayValue();
+            svg_element.appendChild(svg_value_text);
+        }
+
+        /**
+         *
+         */
+        function draw() {
+            draw_init();
+            draw_background();
+            draw_track_background();
+            draw_track();
+            draw_cursor();
+            draw_value();
+        }
+
+        /**
+         *
+         */
+        function redraw() {
+
+            let p = getTrackPath();
+            if (p) {
+                if (svg_track) {
+                    svg_track.setAttributeNS(null, "d", p);
+                } else {
+                    draw_track();
+                }
+            } else {
+                if (svg_track) {
+                    svg_track.setAttributeNS(null, "d", "");    // we hide the track
+                }
+            }
+
+            if (!has_changed) {
+                has_changed = getValue() !== config.default_value;
+                if (has_changed) {
+                    if (svg_track) {
+                        svg_track.setAttribute("stroke", `${config.track_color}`);
+                    }
+                }
+            }
+
+            p = getTrackCursor();
+            if (p) {
+                if (svg_cursor) {
+                    svg_cursor.setAttributeNS(null, "d", p);
+                }
+            }
+
+            if (svg_value_text) {
+                svg_value_text.textContent = getDisplayValue();
+            }
         }
 
         /**

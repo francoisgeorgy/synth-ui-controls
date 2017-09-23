@@ -30,7 +30,7 @@ document.addEventListener("DOMContentLoaded", function(event) {
         cursor_width: 10,
         linecap: 'butt',
         track_bg_width: 20,
-        mouse_wheel_acceleration: 10
+        mouse_wheel_acceleration: 1
     });
     new knob(document.getElementById('knob8'), {
         background: false,
@@ -45,6 +45,7 @@ document.addEventListener("DOMContentLoaded", function(event) {
         cursor_width: 10,
 
     });
+    const k9 = new knob(document.getElementById('knob9'), {});
 
 /*
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
