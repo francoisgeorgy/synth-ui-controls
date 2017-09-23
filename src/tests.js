@@ -36,14 +36,17 @@ document.addEventListener("DOMContentLoaded", function(event) {
         background: false,
         // back_color: 'transparent',
         // back_radius: 50,
-        track_bg_radius: 50,
-        track_bg_width: 1,
+        track_bg_radius: 48,
+        track_bg_width: 2,
         // track_background: false,
         cursor_only: true,
-        cursor_radius: 15,          // same unit as radius
-        cursor_length: 30,
-        cursor_width: 10,
-
+        cursor_radius: 37,          // same unit as radius
+        cursor_length: 0,
+        cursor_width: 16,
+        divisions: 10,
+        divisions_radius: 30,          // same unit as radius
+        divisions_length: 14,
+        divisions_width: 1
     });
     const k9 = new knob(document.getElementById('knob9'), {});
     new knob(document.getElementById('knob10'), {

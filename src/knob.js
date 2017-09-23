@@ -284,6 +284,7 @@
         function setPolarAngle(angle, fireEvent) {
             let previous = current_angle_polar;
             let a = (angle + 360.0) % 360.0;    // we add 360 to handle negative values down to -360
+            console.log(`setPolarAngle ${angle} -> ${a} (${angle_min_polar}, ${angle_max_polar})`);
             // apply boundaries:
             let b = polarToKnobAngle(a);
             if (b < config.angle_min) {
@@ -307,11 +308,11 @@
         function incAngle(increment) {
             let new_angle = polarToKnobAngle(current_angle_polar) + increment;
             if (new_angle < config.angle_min) {
-                setPolarAngle(angle_min_polar);
+                setPolarAngle(angle_min_polar, true);
             } else if (new_angle > config.angle_max) {
-                setPolarAngle(angle_max_polar);
+                setPolarAngle(angle_max_polar, true);
             } else {
-                setPolarAngle(knobToPolarAngle(new_angle));
+                setPolarAngle(knobToPolarAngle(new_angle), true);
             }
         }
 
@@ -604,9 +605,7 @@
         }
 
         function draw_init() {
-
             // For the use of null argument with setAttributeNS, see https://developer.mozilla.org/en-US/docs/Web/SVG/Namespaces_Crash_Course#Scripting_in_namespaced_XML
-
             svg_element.setAttributeNS("http://www.w3.org/2000/xmlns/", "xmlns:xlink", "http://www.w3.org/1999/xlink");
             svg_element.setAttributeNS(null, "viewBox", `0 0 ${VIEWBOX_WIDTH} ${VIEWBOX_HEIGHT}`);
         }
@@ -730,8 +729,6 @@
          */
         function getTrackCursor() {
             let a = current_angle_polar;
-            // let from = getViewboxCoord(a, HALF_WIDTH - config.cursor_radius);
-            // let to = getViewboxCoord(a, HALF_WIDTH - config.cursor_radius + config.cursor_length);
             let from = getViewboxCoord(a, config.cursor_radius);
             let to = getViewboxCoord(a, config.cursor_radius + config.cursor_length);
             return `M ${from.x},${from.y} L ${to.x},${to.y}`;
