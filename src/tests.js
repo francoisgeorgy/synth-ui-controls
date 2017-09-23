@@ -46,6 +46,28 @@ document.addEventListener("DOMContentLoaded", function(event) {
 
     });
     const k9 = new knob(document.getElementById('knob9'), {});
+    new knob(document.getElementById('knob10'), {
+        angle_min: 0,
+        angle_max: 360,
+        // background: true,
+        back_color: 'transparent',
+        back_radius: 48,
+        back_border_width: 2,
+        track_bg: false,
+        cursor: false,
+        // track_bg_radius: 40,
+        // track_bg_width: 1,
+        linecap: 'butt',
+        track_radius: 38,
+        track_width: 14,
+        initial_value: 42
+        // track_background: false,
+        // cursor_only: true,
+        // cursor_radius: 15,          // same unit as radius
+        // cursor_length: 30,
+        // cursor_width: 10,
+
+    });
 
 /*
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");

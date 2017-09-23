@@ -1,7 +1,13 @@
 
     "use strict";
 
-    export default function(elem, conf) {
+    /**
+     *
+     * @param elem DIV or SVN element
+     * @param conf optional config
+     * @returns {{value, config}}
+     */
+    export default function(elem, conf = {}) {
 
         // Like a real knob, it's the knob's position that determines the knob's value.
         // Therefore, the value is computed from the knob's position (angle).
@@ -46,15 +52,12 @@
         const CCW = !CW;    // counter clock-wise
 
         let svg_element;
-        console.log(elem.nodeName);
         if (elem.nodeName.toLowerCase() === 'svg') {
             svg_element = elem;
         } else {
             svg_element = document.createElementNS("http://www.w3.org/2000/svg", "svg");
             elem.appendChild(svg_element);
         }
-
-        // const svg_element = elem;    // DOM element
 
         // For the user convenience, the label can be set with the "data-label" attribute.
         // If another label is set in data-config then this later definition will override data-label.
@@ -73,6 +76,7 @@
             center_zero: false,
 
             default_value: 0,
+            initial_value: 0,
             value_min: 0.0,
             value_max: 100.0,
             value_step: 1,              // null means ignore
@@ -111,9 +115,13 @@
 
             // appearance:
             background: true,
-            track_background: true,
+            track_bg: true,
             cursor: true,
             linecap: 'round',           // https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/stroke-linecap
+            font_family: 'sans-serif',
+            font_size: 25,
+            font_weight: 'bold',
+            font_color: '#555',
 
             // CSS class names
             class_bg: 'knob-bg',
@@ -209,6 +217,7 @@
 
             // set initial angle:
             setValue(config.default_value);
+            if (config.initial_value) setValue(config.initial_value);
 
             // At the top of the knob, we leave a gap between the left and right tracks.
             // These are the polar angles that delimit this gap.
@@ -622,7 +631,7 @@
 
             // For the use of null argument with setAttributeNS, see https://developer.mozilla.org/en-US/docs/Web/SVG/Namespaces_Crash_Course#Scripting_in_namespaced_XML
 
-            if (!config.track_background) return;
+            if (!config.track_bg) return;
 
             //
             // track background:
@@ -722,9 +731,13 @@
         function draw_value() {
             svg_value_text = document.createElementNS(NS, "text");
             svg_value_text.setAttributeNS(null, "x", `${HALF_WIDTH}`);
-            svg_value_text.setAttributeNS(null, "y", `${HALF_HEIGHT + 5}`);
+            svg_value_text.setAttributeNS(null, "y", `${HALF_HEIGHT + config.font_size / 3}`);   // 3 is an empirical value
             svg_value_text.setAttribute("text-anchor", "middle");
             svg_value_text.setAttribute("cursor", "default");
+            svg_value_text.setAttribute("font-family", config.font_family);
+            svg_value_text.setAttribute("font-size", `${config.font_size}`);
+            svg_value_text.setAttribute("font-weight", `${config.font_weight}`);
+            svg_value_text.setAttribute("fill", config.font_color);
             svg_value_text.setAttribute("class", config.class_value);
             svg_value_text.textContent = getDisplayValue();
             svg_element.appendChild(svg_value_text);
