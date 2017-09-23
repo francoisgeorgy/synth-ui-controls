@@ -69,18 +69,57 @@ document.addEventListener("DOMContentLoaded", function(event) {
 
     });
 
-/*
-    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    svg.setAttributeNS("http://www.w3.org/2000/xmlns/", "xmlns:xlink", "http://www.w3.org/1999/xlink");
-    svg.setAttribute("style","width:100px");
-    new knob(svg, {
-        zero_at: 90,
-        center_zero: true,
-        angle_min: 190,
-        angle_max: 170
+    new knob(document.getElementById('knob11'), {
+        angle_min: 20,
+        angle_max: 340,
+        background: false,
+        // back_color: 'transparent',
+        // back_radius: 48,
+        // track_bg: false,
+        // cursor: false,
+        track_bg_radius: 45,
+        track_bg_width: 6,
+        linecap: 'butt',
+        track_radius: 45,
+        track_width: 6,
+        initial_value: 42,
+        // track_background: false,
+        cursor_radius: 25,          // same unit as radius
+        cursor_length: 23,
+        cursor_width: 6
     });
-    document.getElementsByTagName('body')[0].appendChild(svg);
-*/
+
+    new knob(document.getElementById('knob12'), {
+        angle_min: 20,
+        angle_max: 340,
+        back_color: 'transparent',
+        back_radius: 26,
+        back_border_width: 1,
+        track_bg_radius: 30,
+        track_bg_width: 2,
+        // track_background: false,
+        cursor_only: true,
+        cursor_radius: 38,          // same unit as radius
+        cursor_length: 10,
+        cursor_width: 4,
+        divisions: 10,
+        divisions_radius: 36,          // same unit as radius
+        divisions_length: 8,
+        divisions_width: 2,
+    });
+
+    /*
+        const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        svg.setAttributeNS("http://www.w3.org/2000/xmlns/", "xmlns:xlink", "http://www.w3.org/1999/xlink");
+        svg.setAttribute("style","width:100px");
+        new knob(svg, {
+            zero_at: 90,
+            center_zero: true,
+            angle_min: 190,
+            angle_max: 170
+        });
+        document.getElementsByTagName('body')[0].appendChild(svg);
+    */
 
     document.getElementById('reconf2').onclick = function() {
         console.log('reconfigure #knob2');

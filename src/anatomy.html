@@ -1,0 +1,131 @@
+<!doctype html>
+<html>
+<head>
+    <style>
+        body {
+            background-color: #ddd;
+            font-family: sans-serif;
+        }
+        #main {
+            display: flex;
+        }
+        #main > div {
+            width: 100px;
+            background-color: #ffffff;
+            border: none;
+            margin-right: 10px;
+            text-align: center;
+        }
+        #result {
+             width: 200px;
+             background-color: #ffffff;
+             border: none;
+             margin-top: 10px;
+         }
+    </style>
+</head>
+<body>
+    <div id="main">
+        <div>
+            <div id="bg"></div>
+            background
+        </div>
+        <div>
+            <div id="bg-border"></div>
+            background border
+        </div>
+        <div>
+            <div id="track-bg"></div>
+            track background
+        </div>
+        <div>
+            <div id="divisions"></div>
+            divisions
+        </div>
+        <div>
+            <div id="track"></div>
+            track
+        </div>
+        <div>
+            <div id="cursor"></div>
+            cursor
+        </div>
+        <div>
+            <div id="value"></div>
+            value
+        </div>
+    </div>
+    <div id="result"></div>
+</body>
+<script type="module">
+
+    import knob from './knob.js';
+
+    document.addEventListener("DOMContentLoaded", function(event) {
+        new knob(document.getElementById('bg'), {
+            cursor_only: true,
+            cursor: false,
+            track_bg: false,
+            back_border_width: 0,
+            value_text: false
+        });
+        new knob(document.getElementById('bg-border'), {
+            cursor_only: true,
+            cursor: false,
+            track_bg: false,
+            back_color: 'transparent',
+            back_border_width: 2,
+            value_text: false
+        });
+
+        //TODO: add true/false for background disk
+
+        new knob(document.getElementById('track-bg'), {
+            cursor_only: true,
+            cursor: false,
+            back_color: 'transparent',
+            back_border_width: 0,
+            value_text: false
+        });
+        new knob(document.getElementById('divisions'), {
+            cursor_only: true,
+            cursor: false,
+            back_color: 'transparent',
+            back_border_width: 0,
+            track_bg: false,
+            value_text: false,
+            divisions: 10
+        });
+        new knob(document.getElementById('track'), {
+            cursor: false,
+            back_color: 'transparent',
+            back_border_width: 0,
+            track_bg: false,
+            value_text: false,
+            initial_value: 66
+        });
+        new knob(document.getElementById('cursor'), {
+            cursor_only: true,
+            back_color: 'transparent',
+            track_bg: false,
+            back_border_width: 0,
+            value_text: false,
+            initial_value: 66
+        });
+        new knob(document.getElementById('value'), {
+            cursor_only: true,
+            cursor: false,
+            back_color: 'transparent',
+            track_bg: false,
+            back_border_width: 0,
+            value_text: true,
+            initial_value: 66
+        });
+        new knob(document.getElementById('result'), {
+            initial_value: 66,
+            divisions: 10
+        });
+    });
+
+</script>
+</html>

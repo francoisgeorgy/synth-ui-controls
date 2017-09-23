@@ -28,6 +28,7 @@ Web UI components for building synthesizer and midi tools and applications
 
 - presets
 - non-stop rotation, like a jog-dial
+- split track true/false for zero-centered knobs
 - back arc outside the "value" arc, also with own start and end angles.
 - "smart" features
 - make the label zone optional

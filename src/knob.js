@@ -89,7 +89,7 @@
             back_radius: 32,
             back_border_width: 1,
             back_border_color: '#888',
-            back_color: '#333',
+            back_color: '#aaa',
 
             // track background:
             track_bg_radius: 40,
@@ -117,11 +117,18 @@
             background: true,
             track_bg: true,
             cursor: true,
+            value_text: true,
             linecap: 'round',           // https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/stroke-linecap
             font_family: 'sans-serif',
             font_size: 25,
             font_weight: 'bold',
             font_color: '#555',
+
+            divisions: 0,           // number of markers; 0 or false to disable
+            divisions_radius: 40,
+            divisions_length: 8,
+            divisions_width: 2,
+            division_color: '#999',
 
             // CSS class names
             class_bg: 'knob-bg',
@@ -129,6 +136,7 @@
             class_track : 'knob-track',
             class_value : 'knob-value',
             class_cursor : 'knob-cursor',
+            class_divisions: 'knob-divisions',
 
             snap_to_steps: false,       // TODO
 
@@ -187,6 +195,7 @@
         let svg_track_bg_right = null;      // track background; for zero-centered knobs
         let svg_track = null;
         let svg_cursor = null;
+        let svg_divisions = null;
         let svg_value_text = null;
 
         //---------------------------------------------------------------------
@@ -498,9 +507,10 @@
         function _isMacOS() {
             return ['Macintosh', 'MacIntel', 'MacPPC', 'Mac68K'].indexOf(window.navigator.platform) !== -1;
         }
+
         /**
          * Return viewBox X,Y coordinates
-         * @param angle in [degree]
+         * @param angle in [degree] (polar, 0 at 3 o'clock)
          * @param radius; defaults to config.radius
          * @returns {{x: number, y: number}}
          */
@@ -537,7 +547,7 @@
 
         /**
          *
-         * @param fromAngle in [degree]
+         * @param fromAngle in [degree] (polar, 0 at 3 o'clock)
          * @param toAngle in [degree] (polar, 0 at 3 o'clock)
          * @param radius (polar, 0 at 3 o'clock)
          */
@@ -622,6 +632,30 @@
             svg_back_disk.setAttribute("stroke-width", `${config.back_border_width}`);
             svg_back_disk.setAttribute("class", config.class_bg);
             svg_element.appendChild(svg_back_disk);
+        }
+
+        /**
+         *
+         */
+        function draw_divisions() {
+
+            if (!config.divisions) return;
+
+            let p = '';
+            let step = (config.angle_max - config.angle_min) / config.divisions;
+            for (let a = config.angle_min; a <= config.angle_max; a += step) {
+                let from = getViewboxCoord(knobToPolarAngle(a), config.divisions_radius);    // getViewboxCoord(angle, radius)
+                let to = getViewboxCoord(knobToPolarAngle(a), config.divisions_radius + config.divisions_length);
+                p += `M ${from.x},${from.y} L ${to.x},${to.y} `;
+            }
+
+            svg_divisions = document.createElementNS(NS, "path");
+            svg_divisions.setAttributeNS(null, "d", p);
+            svg_divisions.setAttribute("stroke", `${config.division_color}`);
+            svg_divisions.setAttribute("stroke-width", `${config.divisions_width}`);
+            svg_divisions.setAttribute("stroke-linecap", config.linecap);
+            svg_divisions.setAttribute("class", config.class_divisions);
+            svg_element.appendChild(svg_divisions);
         }
 
         /**
@@ -729,6 +763,9 @@
          *
          */
         function draw_value() {
+
+            if (!config.value_text) return;
+
             svg_value_text = document.createElementNS(NS, "text");
             svg_value_text.setAttributeNS(null, "x", `${HALF_WIDTH}`);
             svg_value_text.setAttributeNS(null, "y", `${HALF_HEIGHT + config.font_size / 3}`);   // 3 is an empirical value
@@ -750,6 +787,7 @@
             draw_init();
             draw_background();
             draw_track_background();
+            draw_divisions();
             draw_track();
             draw_cursor();
             draw_value();
