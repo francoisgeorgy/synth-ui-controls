@@ -42,6 +42,7 @@
         // Formula: polar-angle = 270 - knob-angle
         //
 
+
         const TRACE = false;    // when true, will log more details in the console
 
         // It is faster to access a property than to access a variable...
@@ -66,7 +67,8 @@
 
         let defaults = {
 
-            // User configurable properties.
+            // User configurable properties. The colors are defined in the 'palettes', later on.
+
             // No camelCase because we want to be able to have the same name in data- attributes.
 
             label: default_label,
@@ -88,25 +90,19 @@
             // background disk:
             back_radius: 32,
             back_border_width: 1,
-            back_border_color: '#888',
-            back_color: '#aaa',
 
             // track background:
             track_bg_radius: 40,
             track_bg_width: 8,
-            track_bg_color: '#555',
 
             // track:
             track_radius: 40,
             track_width: 8,
-            track_color_init: '#999',
-            track_color: '#bbb',
 
             // cursor
             cursor_radius: 18,          // same unit as radius
             cursor_length: 10,
             cursor_width: 4,
-            cursor_color: '#bbb',
 
             dot_cursor: false,
             cursor_dot_position: 75,    // % of radius (try 80), ignored when cursor_dot_size <= 0
@@ -114,6 +110,7 @@
             cursor_only: false,
 
             // appearance:
+            palette: 'light',
             background: true,
             track_bg: true,
             cursor: true,
@@ -122,13 +119,11 @@
             font_family: 'sans-serif',
             font_size: 25,
             font_weight: 'bold',
-            font_color: '#555',
 
             divisions: 0,           // number of markers; 0 or false to disable
             divisions_radius: 40,
             divisions_length: 8,
             divisions_width: 2,
-            division_color: '#999',
 
             // CSS class names
             class_bg: 'knob-bg',
@@ -147,13 +142,46 @@
 
             format: function(v) {
                 return v;
+            },
+
+            onchange: null              // callback function
+        };
+
+        //
+        // Color palettes:
+        // - light: http://paletton.com/#uid=33s0u0kiCFn8GVde7NVmtwSqXtg
+        // - dark:
+        //
+        let palettes = {
+            light : {
+                division_color: '#3680A4',
+                back_border_color: '#569DC0',
+                back_color: '#B1DAEE',
+                cursor_color: '#1D6D93',
+                track_bg_color: '#B1DAEE',
+                track_color_init: '#569DC0',
+                track_color: '#1D6D93',
+                font_color: '#1D6D93',
+            },
+            dark: {
+                division_color: '#3680A4',
+                back_border_color: '#569DC0',
+                back_color: '#0C141F',
+                cursor_color: '#1D6D93',
+                track_bg_color: '#B1DAEE',
+                track_color_init: '#569DC0',
+                track_color: '#1D6D93',
+                font_color: '#1D6D93',
             }
         };
 
+
         //---------------------------------------------------------------------
-        // Merge user config with default config:
+        // Consolidate all configs:
         let data_config = JSON.parse(elem.dataset.config || '{}');
-        let config = Object.assign({}, defaults, conf, data_config);
+        let c = Object.assign({}, defaults, palettes[defaults.palette], conf, data_config);
+        // we re-assign conf and data_config for the case they override some of the palette colors.
+        let config = Object.assign(c, palettes[c.palette], conf, data_config);
 
         //---------------------------------------------------------------------
         // To simplify the internal coordinates transformations, we set the view box as a 100 by 100 square.
@@ -283,7 +311,14 @@
          */
         function setPolarAngle(angle, fireEvent) {
             let previous = current_angle_polar;
-            let a = (angle + 360.0) % 360.0;    // we add 360 to handle negative values down to -360
+            // let a = (angle + 360.0) % 360.0;    // we add 360 to handle negative values down to -360
+            let a;
+            if (angle === angle_max_polar) {
+                console.log(`angle === angle_max_polar ${angle}`);
+                a = angle;
+            } else {
+                a = (angle + 360.0) % 360.0;    // we add 360 to handle negative values down to -360
+            }
             console.log(`setPolarAngle ${angle} -> ${a} (${angle_min_polar}, ${angle_max_polar})`);
             // apply boundaries:
             let b = polarToKnobAngle(a);
@@ -307,6 +342,7 @@
          */
         function incAngle(increment) {
             let new_angle = polarToKnobAngle(current_angle_polar) + increment;
+            console.log(`current_angle_polar=${current_angle_polar} new_angle=${new_angle}`);
             if (new_angle < config.angle_min) {
                 setPolarAngle(angle_min_polar, true);
             } else if (new_angle > config.angle_max) {
@@ -498,6 +534,11 @@
             let value = getValue();     // TODO: cache the value
             let event = new CustomEvent('change', { 'detail': value });
             svg_element.dispatchEvent(event);
+
+            if (config.onchange) {
+                config.onchange(value);
+            }
+
         }
 
         /**

@@ -11,9 +11,23 @@ document.addEventListener("DOMContentLoaded", function(event) {
         track_radius: 30,
         track_width: 16,
     });
-    new knob(document.getElementById('knob5'), {
+
+    // example of change notification by callback function:
+    let e5 = document.getElementById('knob5');
+    let k5 = new knob(e5, {
+        linecap: 'butt',
+        onchange: v => document.getElementById('v5').innerHTML = v
+    });
+
+    // example of change notification by event:
+    let e5b = document.getElementById('knob5b');
+    let k5b = new knob(e5b, {
         linecap: 'butt'
     });
+    e5b.addEventListener("change", function(event) {
+        document.getElementById('v5b').innerHTML = event.detail;
+    });
+
     new knob(document.getElementById('knob6'), {
         background: false,
         cursor: false,
@@ -30,6 +44,7 @@ document.addEventListener("DOMContentLoaded", function(event) {
         cursor_width: 10,
         linecap: 'butt',
         track_bg_width: 20,
+        cursor_color: '#E98E25',
         mouse_wheel_acceleration: 1
     });
     new knob(document.getElementById('knob8'), {
