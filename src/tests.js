@@ -2,10 +2,15 @@ import knob from './knob.js';
 
 document.addEventListener("DOMContentLoaded", function(event) {
 
-    const k1 = new knob(document.getElementById('knob1'), {});
-    const k2 = new knob(document.getElementById('knob2'), {center_zero: true, value_min:-100, value_max:100});
-    new knob(document.getElementById('knob3'), {zero_at: 90});
-    new knob(document.getElementById('knob4'), {
+    let knobs = {};
+
+    knobs['k1'] = new knob(document.getElementById('knob1'), {});
+
+    knobs['k2'] = new knob(document.getElementById('knob2'), {center_zero: true, value_min:-100, value_max:100});
+
+    knobs['k3'] = new knob(document.getElementById('knob3'), {zero_at: 90});
+
+    knobs['k4'] = new knob(document.getElementById('knob4'), {
         angle_min: 10,
         angle_max: 350,
         track_radius: 30,
@@ -14,21 +19,22 @@ document.addEventListener("DOMContentLoaded", function(event) {
 
     // example of change notification by callback function:
     let e5 = document.getElementById('knob5');
-    let k5 = new knob(e5, {
+    knobs['k5'] = new knob(e5, {
         linecap: 'butt',
         onchange: v => document.getElementById('v5').innerHTML = v
     });
 
     // example of change notification by event:
     let e5b = document.getElementById('knob5b');
-    let k5b = new knob(e5b, {
+    knobs['k5b'] = new knob(e5b, {
         linecap: 'butt'
     });
     e5b.addEventListener("change", function(event) {
         document.getElementById('v5b').innerHTML = event.detail;
     });
 
-    new knob(document.getElementById('knob6'), {
+    // set this settings as default
+    knobs['k6'] = new knob(document.getElementById('knob6'), {
         bg: false,
         cursor: false,
         linecap: 'butt',
@@ -36,7 +42,7 @@ document.addEventListener("DOMContentLoaded", function(event) {
         track_width: 20,
         mouse_wheel_acceleration: 20
     });
-    const k7 = new knob(document.getElementById('knob7'), {
+    knobs['k7'] = new knob(document.getElementById('knob7'), {
         bg: false,
         cursor_only: true,
         cursor_radius: 30,          // same unit as radius
@@ -47,7 +53,7 @@ document.addEventListener("DOMContentLoaded", function(event) {
         cursor_color: '#E98E25',
         mouse_wheel_acceleration: 1
     });
-    new knob(document.getElementById('knob8'), {
+    knobs['k8'] = new knob(document.getElementById('knob8'), {
         bg: false,
         // back_color: 'transparent',
         // back_radius: 50,
@@ -63,8 +69,8 @@ document.addEventListener("DOMContentLoaded", function(event) {
         markers_length: 14,
         markers_width: 1
     });
-    const k9 = new knob(document.getElementById('knob9'), {});
-    new knob(document.getElementById('knob10'), {
+    knobs['k9'] = new knob(document.getElementById('knob9'), {});
+    knobs['k10'] = new knob(document.getElementById('knob10'), {
         angle_min: 0,
         angle_max: 360,
         // background: true,
@@ -87,7 +93,7 @@ document.addEventListener("DOMContentLoaded", function(event) {
 
     });
 
-    new knob(document.getElementById('knob11'), {
+    knobs['k11'] = new knob(document.getElementById('knob11'), {
         angle_min: 20,
         angle_max: 340,
         bg: false,
@@ -107,7 +113,7 @@ document.addEventListener("DOMContentLoaded", function(event) {
         cursor_width: 6
     });
 
-    new knob(document.getElementById('knob12'), {
+    knobs['k12'] = new knob(document.getElementById('knob12'), {
         angle_min: 20,
         angle_max: 340,
         bg_color: 'transparent',
@@ -126,7 +132,7 @@ document.addEventListener("DOMContentLoaded", function(event) {
         markers_width: 2,
     });
 
-    new knob(document.getElementById('knob13'), {
+    knobs['k13'] = new knob(document.getElementById('knob13'), {
         angle_min: 20,
         angle_max: 340,
         bg: false,
@@ -147,7 +153,7 @@ document.addEventListener("DOMContentLoaded", function(event) {
         value_position: 112
     });
 
-    new knob(document.getElementById('knob14'), {
+    knobs['k14'] = new knob(document.getElementById('knob14'), {
         angle_min: 20,
         angle_max: 340,
         bg: false,
@@ -165,39 +171,50 @@ document.addEventListener("DOMContentLoaded", function(event) {
         format: v => v.toLocaleString(undefined, {style: 'currency', currency: 'EUR'})
     });
 
-    /*
-        const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-        svg.setAttributeNS("http://www.w3.org/2000/xmlns/", "xmlns:xlink", "http://www.w3.org/1999/xlink");
-        svg.setAttribute("style","width:100px");
-        new knob(svg, {
-            zero_at: 90,
-            center_zero: true,
-            angle_min: 190,
-            angle_max: 170
-        });
-        document.getElementsByTagName('body')[0].appendChild(svg);
-    */
+
+
+    knobs['k100'] = new knob(document.getElementById('knob100'), {
+        bg: false,
+        cursor: false,
+        linecap: 'butt',
+        track_bg_width: 20,
+        track_width: 20,
+        mouse_wheel_acceleration: 20,
+        palette: 'dark'
+    });
+
+    Object.getOwnPropertyNames(knobs).forEach(
+        function(knob, index) {
+            knobs[knob].value = 42;
+        }
+    );
+
+    var randomize_button = document.getElementById('randomize');
+    randomize_button.addEventListener("click", function(event) {
+        Object.getOwnPropertyNames(knobs).forEach(
+            function(knob) {
+                var v = 0;
+                var m = Math.ceil(Math.random() * 100);
+                var id = setInterval(frame, 15);
+                function frame() {
+                    if (v > m) {
+                        clearInterval(id);
+                    } else {
+                        knobs[knob].value = v;
+                        v++;
+                    }
+                }
+            }
+        );
+    });
 
     document.getElementById('reconf2').onclick = function() {
         console.log('reconfigure #knob2');
+/*
         k2.config = {
             center_zero: false
         };
-    };
-
-/*
-    let knobs = {};
-
-    // var knobs = document.querySelectorAll('svg.knob');
-    [].forEach.call(document.querySelectorAll('svg.knob'), function(element) {
-        knobs[element.id] = new knob(element);
-        // element.addEventListener("change", function(event) {
-        //     document.getElementById('v-' + element.id).innerHTML = event.detail;
-        // });
-    });
-
-    // var k = new knob(document.getElementById('knob'), {});
-    console.log(knobs);
 */
+    };
 
 });

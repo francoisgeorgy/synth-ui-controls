@@ -1,6 +1,8 @@
 
     "use strict";
 
+    import palettes from './palettes.js';
+
     /**
      *
      * @param elem DIV or SVN element
@@ -121,7 +123,7 @@
             cursor_only: false,
 
             // appearance:
-            palette: 'light',
+            palette: 'lightgray',
             bg: true,
             track_bg: true,
             cursor: true,
@@ -161,6 +163,7 @@
         // - light: http://paletton.com/#uid=33s0u0kiCFn8GVde7NVmtwSqXtg
         // - dark:
         //
+/*
         let palettes = {
             light : {
                 markers_color: '#3680A4',
@@ -185,6 +188,7 @@
                 font_color: '#1D6D93',
             }
         };
+*/
 
 
         //---------------------------------------------------------------------

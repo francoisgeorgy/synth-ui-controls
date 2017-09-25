@@ -4,24 +4,57 @@
     <script src="tests.js" type="module"></script>
     <style>
         body {
-            background-color: #ddd;
+            padding: 0;
+            margin: 0;
             font-family: sans-serif;
         }
-        #main {
+        #header {
+            padding: 5px;
+            background-color: #ccc;
+            border-bottom: 1px solid #aaa;
+        }
+        #light-bg {
+            background-color: #ffffff;
+        }
+        #dark-bg {
+            background-color: #000000;
+        }
+        .grid {
+            padding: 20px;
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
+            grid-template-columns: repeat(5, 1fr);
         }
         .knob {
             width: 100px;
-            background-color: #ffffff;
             border: none;
         }
     </style>
 </head>
 <body>
-    <div id="main">
+    <div id="header">
+    <button id="randomize">randomize</button>
+    </div>
+    <div id="light-bg" class="grid">
+
+        <!--
+        TODO:
+        - default
+        - full options
+        - split track
+        - butt ends
+        - only cursor
+        - dot cursor
+        - markers
+        - ableton-like
+        - tron-like
+        - value at bottom
+
+        - on light background
+        - on dark background
+        -->
+
         <div>
-            <svg class="knob" id="knob1" data-label="default"></svg>
+            <svg class="knob" id="knob1"></svg>
         </div>
         <div>
             <svg class="knob" id="knob2"></svg><br />
@@ -78,6 +111,11 @@
                 <!--</ul>-->
             <!--</div>-->
         <!--</div>-->
+    </div>
+    <div id="dark-bg" class="grid">
+        <div>
+            <svg class="knob" id="knob100"></svg>
+        </div>
     </div>
 </body>
 </html>
