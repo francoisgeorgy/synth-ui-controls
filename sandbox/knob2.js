@@ -33,7 +33,7 @@
             cursor_only: false,  //TODO
             cursor_width: 0,    // only when cursor_only is true
             back_width: 20,   // 10% of radius
-            back_color: '#ddd',
+            bg_color: '#ddd',
             arc_width: 20,   // 10% of radius
             arc_color: '#666',
             radius: 40,
@@ -351,7 +351,7 @@
 
             let back = document.createElementNS(NS, "path");
             back.setAttributeNS(null, "d", getPath(maxAngle));
-            back.setAttribute("stroke", config.back_color);
+            back.setAttribute("stroke", config.bg_color);
             back.setAttribute("stroke-width", "" + config.back_width * config.radius / 100);
             back.setAttribute("fill", "transparent");
             back.setAttribute("class", "back");

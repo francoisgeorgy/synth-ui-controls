@@ -29,7 +29,7 @@ document.addEventListener("DOMContentLoaded", function(event) {
     });
 
     new knob(document.getElementById('knob6'), {
-        background: false,
+        bg: false,
         cursor: false,
         linecap: 'butt',
         track_bg_width: 20,
@@ -37,7 +37,7 @@ document.addEventListener("DOMContentLoaded", function(event) {
         mouse_wheel_acceleration: 20
     });
     const k7 = new knob(document.getElementById('knob7'), {
-        background: false,
+        bg: false,
         cursor_only: true,
         cursor_radius: 30,          // same unit as radius
         cursor_length: 20,
@@ -48,7 +48,7 @@ document.addEventListener("DOMContentLoaded", function(event) {
         mouse_wheel_acceleration: 1
     });
     new knob(document.getElementById('knob8'), {
-        background: false,
+        bg: false,
         // back_color: 'transparent',
         // back_radius: 50,
         track_bg_radius: 48,
@@ -58,19 +58,19 @@ document.addEventListener("DOMContentLoaded", function(event) {
         cursor_radius: 37,          // same unit as radius
         cursor_length: 0,
         cursor_width: 16,
-        divisions: 10,
-        divisions_radius: 30,          // same unit as radius
-        divisions_length: 14,
-        divisions_width: 1
+        markers: 10,
+        markers_radius: 30,          // same unit as radius
+        markers_length: 14,
+        markers_width: 1
     });
     const k9 = new knob(document.getElementById('knob9'), {});
     new knob(document.getElementById('knob10'), {
         angle_min: 0,
         angle_max: 360,
         // background: true,
-        back_color: 'transparent',
-        back_radius: 48,
-        back_border_width: 2,
+        bg_color: 'transparent',
+        bg_radius: 48,
+        bg_border_width: 2,
         track_bg: false,
         cursor: false,
         // track_bg_radius: 40,
@@ -90,7 +90,7 @@ document.addEventListener("DOMContentLoaded", function(event) {
     new knob(document.getElementById('knob11'), {
         angle_min: 20,
         angle_max: 340,
-        background: false,
+        bg: false,
         // back_color: 'transparent',
         // back_radius: 48,
         // track_bg: false,
@@ -110,9 +110,9 @@ document.addEventListener("DOMContentLoaded", function(event) {
     new knob(document.getElementById('knob12'), {
         angle_min: 20,
         angle_max: 340,
-        back_color: 'transparent',
-        back_radius: 26,
-        back_border_width: 1,
+        bg_color: 'transparent',
+        bg_radius: 26,
+        bg_border_width: 1,
         track_bg_radius: 30,
         track_bg_width: 2,
         // track_background: false,
@@ -120,10 +120,49 @@ document.addEventListener("DOMContentLoaded", function(event) {
         cursor_radius: 38,          // same unit as radius
         cursor_length: 10,
         cursor_width: 4,
-        divisions: 10,
-        divisions_radius: 36,          // same unit as radius
-        divisions_length: 8,
-        divisions_width: 2,
+        markers: 10,
+        markers_radius: 36,          // same unit as radius
+        markers_length: 8,
+        markers_width: 2,
+    });
+
+    new knob(document.getElementById('knob13'), {
+        angle_min: 20,
+        angle_max: 340,
+        bg: false,
+        // back_color: 'transparent',
+        // back_radius: 48,
+        // track_bg: false,
+        // cursor: false,
+        track_bg_radius: 45,
+        track_bg_width: 6,
+        linecap: 'butt',
+        track_radius: 45,
+        track_width: 6,
+        initial_value: 42,
+        // track_background: false,
+        cursor_radius: 1,          // same unit as radius
+        cursor_length: 47,
+        cursor_width: 6,
+        value_position: 112
+    });
+
+    new knob(document.getElementById('knob14'), {
+        angle_min: 20,
+        angle_max: 340,
+        bg: false,
+        track_bg_radius: 45,
+        track_bg_width: 6,
+        linecap: 'butt',
+        track_radius: 45,
+        track_width: 6,
+        initial_value: 42,
+        // track_background: false,
+        cursor_radius: 25,          // same unit as radius
+        cursor_length: 23,
+        cursor_width: 6,
+        font_size: 20,
+        format: v => v.toLocaleString(undefined, {style: 'currency', currency: 'EUR'})
     });
 
     /*

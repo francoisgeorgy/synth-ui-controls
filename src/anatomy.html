@@ -39,8 +39,8 @@
             track background
         </div>
         <div>
-            <div id="divisions"></div>
-            divisions
+            <div id="markers"></div>
+            markers
         </div>
         <div>
             <div id="track"></div>
@@ -66,15 +66,15 @@
             cursor_only: true,
             cursor: false,
             track_bg: false,
-            back_border_width: 0,
+            bg_border_width: 0,
             value_text: false
         });
         new knob(document.getElementById('bg-border'), {
             cursor_only: true,
             cursor: false,
             track_bg: false,
-            back_color: 'transparent',
-            back_border_width: 2,
+            bg_color: 'transparent',
+            bg_border_width: 2,
             value_text: false
         });
 
@@ -83,47 +83,47 @@
         new knob(document.getElementById('track-bg'), {
             cursor_only: true,
             cursor: false,
-            back_color: 'transparent',
-            back_border_width: 0,
+            bg_color: 'transparent',
+            bg_border_width: 0,
             value_text: false
         });
-        new knob(document.getElementById('divisions'), {
+        new knob(document.getElementById('markers'), {
             cursor_only: true,
             cursor: false,
-            back_color: 'transparent',
-            back_border_width: 0,
+            bg_color: 'transparent',
+            bg_border_width: 0,
             track_bg: false,
             value_text: false,
-            divisions: 10
+            markers: 10
         });
         new knob(document.getElementById('track'), {
             cursor: false,
-            back_color: 'transparent',
-            back_border_width: 0,
+            bg_color: 'transparent',
+            bg_border_width: 0,
             track_bg: false,
             value_text: false,
             initial_value: 66
         });
         new knob(document.getElementById('cursor'), {
             cursor_only: true,
-            back_color: 'transparent',
+            bg_color: 'transparent',
             track_bg: false,
-            back_border_width: 0,
+            bg_border_width: 0,
             value_text: false,
             initial_value: 66
         });
         new knob(document.getElementById('value'), {
             cursor_only: true,
             cursor: false,
-            back_color: 'transparent',
+            bg_color: 'transparent',
             track_bg: false,
-            back_border_width: 0,
+            bg_border_width: 0,
             value_text: true,
             initial_value: 66
         });
         new knob(document.getElementById('result'), {
             initial_value: 66,
-            divisions: 10
+            markers: 10
         });
     });
 

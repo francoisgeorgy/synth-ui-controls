@@ -52,6 +52,17 @@
         const CW = true;    // clock-wise
         const CCW = !CW;    // counter clock-wise
 
+        //---------------------------------------------------------------------
+        // To simplify the internal coordinates transformations, we set the view box as a 100 by 100 square.
+        // But, if a label is present, then we add 20 to the height (at the bottom) as a placeholder for the label.
+        // In summary:
+        // - 0,0..99,99: the knob itself
+        // - 0,100..99,119: the label, if any
+        const VIEWBOX_WIDTH = 100;
+        // const VIEWBOX_HEIGHT = config.with_label ? 120 : 100;
+        const HALF_WIDTH = 50;      // viewBox/2
+        const HALF_HEIGHT = 50;     // viewBox/2
+
         let svg_element;
         if (elem.nodeName.toLowerCase() === 'svg') {
             svg_element = elem;
@@ -88,8 +99,8 @@
             angle_max: 330.0,           // [deg] Angle in knob coordinates (0 at 6 0'clock)
 
             // background disk:
-            back_radius: 32,
-            back_border_width: 1,
+            bg_radius: 32,
+            bg_border_width: 1,
 
             // track background:
             track_bg_radius: 40,
@@ -111,38 +122,36 @@
 
             // appearance:
             palette: 'light',
-            background: true,
+            bg: true,
             track_bg: true,
             cursor: true,
+            // CSS class names
+            linecap: 'round',                   // https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/stroke-linecap
             value_text: true,
-            linecap: 'round',           // https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/stroke-linecap
+            value_position: HALF_HEIGHT + 8,    // empirical value: HALF_HEIGHT + config.font_size / 3
+            // value_formatting: null,          // TODO; callback function
+            format: v => v,                     // formatting of the displayed value
             font_family: 'sans-serif',
             font_size: 25,
+
             font_weight: 'bold',
+            markers: 0,                         // number of markers; 0 or false to disable
+            markers_radius: 40,
+            markers_length: 8,
 
-            divisions: 0,           // number of markers; 0 or false to disable
-            divisions_radius: 40,
-            divisions_length: 8,
-            divisions_width: 2,
-
-            // CSS class names
+            markers_width: 2,
             class_bg: 'knob-bg',
             class_track_bg : 'knob-track-bg',
             class_track : 'knob-track',
             class_value : 'knob-value',
             class_cursor : 'knob-cursor',
-            class_divisions: 'knob-divisions',
+
+            class_markers: 'knob-markers',
 
             snap_to_steps: false,       // TODO
 
             // mouse wheel support:
             mouse_wheel_acceleration: 1,
-
-            value_formatting: null,     // TODO; callback function
-
-            format: function(v) {
-                return v;
-            },
 
             onchange: null              // callback function
         };
@@ -154,20 +163,22 @@
         //
         let palettes = {
             light : {
-                division_color: '#3680A4',
-                back_border_color: '#569DC0',
-                back_color: '#B1DAEE',
+                markers_color: '#3680A4',
+                bg_border_color: '#569DC0',
+                bg_color: '#B1DAEE',
                 cursor_color: '#1D6D93',
+                cursor_color_init: '#569DC0',
                 track_bg_color: '#B1DAEE',
                 track_color_init: '#569DC0',
                 track_color: '#1D6D93',
                 font_color: '#1D6D93',
             },
             dark: {
-                division_color: '#3680A4',
-                back_border_color: '#569DC0',
-                back_color: '#0C141F',
+                markers_color: '#3680A4',
+                bg_border_color: '#569DC0',
+                bg_color: '#0C141F',
                 cursor_color: '#1D6D93',
+                cursor_color_init: '#569DC0',
                 track_bg_color: '#B1DAEE',
                 track_color_init: '#569DC0',
                 track_color: '#1D6D93',
@@ -183,16 +194,13 @@
         // we re-assign conf and data_config for the case they override some of the palette colors.
         let config = Object.assign(c, palettes[c.palette], conf, data_config);
 
-        //---------------------------------------------------------------------
-        // To simplify the internal coordinates transformations, we set the view box as a 100 by 100 square.
-        // But, if a label is present, then we add 20 to the height (at the bottom) as a placeholder for the label.
-        // In summary:
-        // - 0,0..99,99: the knob itself
-        // - 0,100..99,119: the label, if any
-        const VIEWBOX_WIDTH = 100;
-        const VIEWBOX_HEIGHT = config.with_label ? 120 : 100;
-        const HALF_WIDTH = 50;      // viewBox/2
-        const HALF_HEIGHT = 50;     // viewBox/2
+        let viewbox_height;
+        if (config.with_label || (config.value_position >= (100 - (config.font_size / 2)))) {
+            // make some room for the label or the value that we want to display below the knob
+            viewbox_height = 120;
+        } else {
+            viewbox_height = 100;
+        }
 
         // Center of arc in knob coordinates and in ViewPort's pixels relative to the <svg> ClientBoundingRect.
         let arcCenterXPixels = 0;
@@ -217,7 +225,7 @@
 
         //---------------------------------------------------------------------
         // SVG elements, from back to front:
-        let svg_back_disk = null;           // background disk:
+        let svg_bg = null;           // background disk:
         let svg_track_bg = null;            // track background; for non zero-centered knobs
         let svg_track_bg_left = null;       // track background; for zero-centered knobs
         let svg_track_bg_right = null;      // track background; for zero-centered knobs
@@ -648,7 +656,7 @@
         function draw_init() {
             // For the use of null argument with setAttributeNS, see https://developer.mozilla.org/en-US/docs/Web/SVG/Namespaces_Crash_Course#Scripting_in_namespaced_XML
             svg_element.setAttributeNS("http://www.w3.org/2000/xmlns/", "xmlns:xlink", "http://www.w3.org/1999/xlink");
-            svg_element.setAttributeNS(null, "viewBox", `0 0 ${VIEWBOX_WIDTH} ${VIEWBOX_HEIGHT}`);
+            svg_element.setAttributeNS(null, "viewBox", `0 0 ${VIEWBOX_WIDTH} ${viewbox_height}`);
         }
 
         /**
@@ -656,45 +664,45 @@
          */
         function draw_background() {
 
-            if (!config.background) return;
+            if (!config.bg) return;
 
             // For the use of null argument with setAttributeNS, see https://developer.mozilla.org/en-US/docs/Web/SVG/Namespaces_Crash_Course#Scripting_in_namespaced_XML
 
             //
             // back disk:
             //
-            svg_back_disk = document.createElementNS(NS, "circle");
-            svg_back_disk.setAttributeNS(null, "cx", `${HALF_WIDTH}`);
-            svg_back_disk.setAttributeNS(null, "cy", `${HALF_HEIGHT}`);
-            svg_back_disk.setAttributeNS(null, "r", `${config.back_radius}`);
-            svg_back_disk.setAttribute("fill", `${config.back_color}`);
-            svg_back_disk.setAttribute("stroke", `${config.back_border_color}`);
-            svg_back_disk.setAttribute("stroke-width", `${config.back_border_width}`);
-            svg_back_disk.setAttribute("class", config.class_bg);
-            svg_element.appendChild(svg_back_disk);
+            svg_bg = document.createElementNS(NS, "circle");
+            svg_bg.setAttributeNS(null, "cx", `${HALF_WIDTH}`);
+            svg_bg.setAttributeNS(null, "cy", `${HALF_HEIGHT}`);
+            svg_bg.setAttributeNS(null, "r", `${config.bg_radius}`);
+            svg_bg.setAttribute("fill", `${config.bg_color}`);
+            svg_bg.setAttribute("stroke", `${config.bg_border_color}`);
+            svg_bg.setAttribute("stroke-width", `${config.bg_border_width}`);
+            svg_bg.setAttribute("class", config.class_bg);
+            svg_element.appendChild(svg_bg);
         }
 
         /**
          *
          */
-        function draw_divisions() {
+        function draw_markers() {
 
-            if (!config.divisions) return;
+            if (!config.markers) return;
 
             let p = '';
-            let step = (config.angle_max - config.angle_min) / config.divisions;
+            let step = (config.angle_max - config.angle_min) / config.markers;
             for (let a = config.angle_min; a <= config.angle_max; a += step) {
-                let from = getViewboxCoord(knobToPolarAngle(a), config.divisions_radius);    // getViewboxCoord(angle, radius)
-                let to = getViewboxCoord(knobToPolarAngle(a), config.divisions_radius + config.divisions_length);
+                let from = getViewboxCoord(knobToPolarAngle(a), config.markers_radius);    // getViewboxCoord(angle, radius)
+                let to = getViewboxCoord(knobToPolarAngle(a), config.markers_radius + config.markers_length);
                 p += `M ${from.x},${from.y} L ${to.x},${to.y} `;
             }
 
             svg_divisions = document.createElementNS(NS, "path");
             svg_divisions.setAttributeNS(null, "d", p);
-            svg_divisions.setAttribute("stroke", `${config.division_color}`);
-            svg_divisions.setAttribute("stroke-width", `${config.divisions_width}`);
+            svg_divisions.setAttribute("stroke", `${config.markers_color}`);
+            svg_divisions.setAttribute("stroke-width", `${config.markers_width}`);
             svg_divisions.setAttribute("stroke-linecap", config.linecap);
-            svg_divisions.setAttribute("class", config.class_divisions);
+            svg_divisions.setAttribute("class", config.class_markers);
             svg_element.appendChild(svg_divisions);
         }
 
@@ -807,7 +815,8 @@
             if (p) {
                 svg_cursor = document.createElementNS(NS, "path");
                 svg_cursor.setAttributeNS(null, "d", p);
-                svg_cursor.setAttribute("stroke", `${config.cursor_color}`);
+                // svg_cursor.setAttribute("stroke", `${config.cursor_color}`);
+                svg_cursor.setAttribute("stroke", `${config.cursor_color_init}`);
                 svg_cursor.setAttribute("stroke-width", `${config.cursor_width}`);
                 svg_cursor.setAttribute("fill", "transparent");
                 svg_cursor.setAttribute("stroke-linecap", config.linecap);
@@ -825,7 +834,8 @@
 
             svg_value_text = document.createElementNS(NS, "text");
             svg_value_text.setAttributeNS(null, "x", `${HALF_WIDTH}`);
-            svg_value_text.setAttributeNS(null, "y", `${HALF_HEIGHT + config.font_size / 3}`);   // 3 is an empirical value
+            // svg_value_text.setAttributeNS(null, "y", `${HALF_HEIGHT + config.font_size / 3}`);   // 3 is an empirical value
+            svg_value_text.setAttributeNS(null, "y", `${config.value_position}`);
             svg_value_text.setAttribute("text-anchor", "middle");
             svg_value_text.setAttribute("cursor", "default");
             svg_value_text.setAttribute("font-family", config.font_family);
@@ -844,7 +854,7 @@
             draw_init();
             draw_background();
             draw_track_background();
-            draw_divisions();
+            draw_markers();
             // draw_units();
             draw_track();
             draw_cursor();
@@ -882,6 +892,9 @@
             if (p) {
                 if (svg_cursor) {
                     svg_cursor.setAttributeNS(null, "d", p);
+                    if (has_changed) {
+                        svg_cursor.setAttribute("stroke", `${config.cursor_color}`);
+                    }
                 }
             }
 
