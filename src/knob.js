@@ -16,6 +16,9 @@
         // However, the user has the possibility to directly set the value and in that case
         // the knob's position will be computed from the value and the knob redrawn accordingly.
 
+        //TODO: do all angle changes (inc, dec, set) with the knob's angle. Convert to polar angle (SVG coord)
+        //      only when drawing. Only do the % 360 computation with the polar angle.
+
         //
         // All angles in method parameters are in [degrees]
         //
@@ -326,12 +329,12 @@
             // let a = (angle + 360.0) % 360.0;    // we add 360 to handle negative values down to -360
             let a;
             if (angle === angle_max_polar) {
-                console.log(`angle === angle_max_polar ${angle}`);
+                console.log(`setPolarAngle: angle === angle_max_polar ${angle}`);
                 a = angle;
             } else {
                 a = (angle + 360.0) % 360.0;    // we add 360 to handle negative values down to -360
             }
-            console.log(`setPolarAngle ${angle} -> ${a} (${angle_min_polar}, ${angle_max_polar})`);
+            console.log(`setPolarAngle: ${angle} -> ${a} (${angle_min_polar}, ${angle_max_polar})`);
             // apply boundaries:
             let b = polarToKnobAngle(a);
             if (b < config.angle_min) {
@@ -354,10 +357,11 @@
          */
         function incAngle(increment) {
             let new_angle = polarToKnobAngle(current_angle_polar) + increment;
-            console.log(`current_angle_polar=${current_angle_polar} new_angle=${new_angle}`);
+            console.log(`incAngle: polar ${current_angle_polar} -> knob ${new_angle}`);
             if (new_angle < config.angle_min) {
                 setPolarAngle(angle_min_polar, true);
-            } else if (new_angle > config.angle_max) {
+            } else if (new_angle >= config.angle_max) {
+                console.log(`new_angle >= config.angle_max  ${new_angle} >= ${config.angle_max}`);
                 setPolarAngle(angle_max_polar, true);
             } else {
                 setPolarAngle(knobToPolarAngle(new_angle), true);
@@ -607,7 +611,7 @@
          */
         function getArc(fromAngle, toAngle, radius) {
 
-            if (TRACE) console.log(`getArc(${fromAngle}, ${toAngle}, ${radius})`);
+            /*if (TRACE)*/ console.log(`getArc(${fromAngle}, ${toAngle}, ${radius}) angle_min_polar=${angle_min_polar} angle_max_polar=${angle_max_polar}`);
 
             // SVG d: "A rx,ry xAxisRotate LargeArcFlag,SweepFlag x,y".
             // SweepFlag is either 0 or 1, and determines if the arc should be swept in a clockwise (1), or anti-clockwise (0) direction
@@ -617,6 +621,8 @@
             let {x: x1, y: y1} = getViewboxCoord(toAngle, radius);
 
             let deltaAngle = (fromAngle - toAngle + 360.0) % 360.0;
+
+            console.log(`getArc: deltaAngle=${deltaAngle}`);
 
             let largeArc = deltaAngle < 180.0 ? 0 : 1;
             let arcDirection = config.rotation === CW ? 1 : 0;

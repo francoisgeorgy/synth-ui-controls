@@ -1,0 +1,52 @@
+<!doctype html>
+<html>
+<head>
+    <style>
+        body {
+            padding: 0;
+            margin: 0;
+            font-family: sans-serif;
+        }
+        #light-bg {
+            background-color: #ffffff;
+        }
+        .grid {
+            padding: 20px;
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+        }
+        .knob {
+            width: 100px;
+            border: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="light-bg" class="grid">
+        <div>
+            <svg class="knob" id="knob"></svg>
+        </div>
+    </div>
+</body>
+<script type="module">
+
+    import knob from './knob.js';
+
+    document.addEventListener("DOMContentLoaded", function(event) {
+        new knob(document.getElementById('knob'), {
+            angle_min: 0,
+            angle_max: 360,
+            bg_color: 'transparent',
+            bg_radius: 48,
+            bg_border_width: 2,
+            track_bg: false,
+            cursor: false,
+            linecap: 'butt',
+            track_radius: 38,
+            track_width: 14,
+            initial_value: 42
+        });
+    });
+
+</script>
+</html>
