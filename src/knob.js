@@ -698,6 +698,25 @@
             svg_element.appendChild(svg_divisions);
         }
 
+/*
+        function draw_units() {
+            let pos = getViewboxCoord(angle_min_polar, config.divisions_radius);    // getViewboxCoord(angle, radius)
+            svg_value_text = document.createElementNS(NS, "text");
+            svg_value_text.setAttributeNS(null, "x", `${pos.x}`);
+            svg_value_text.setAttributeNS(null, "y", `${pos.y}`);
+            // svg_value_text.setAttribute("text-anchor", "middle");
+            svg_value_text.setAttribute("cursor", "default");
+            svg_value_text.setAttribute("font-family", config.font_family);
+            svg_value_text.setAttribute("font-size", `10`);
+            // svg_value_text.setAttribute("font-weight", `${config.font_weight}`);
+            svg_value_text.setAttribute("fill", config.font_color);
+            // svg_value_text.setAttribute("class", config.class_value);
+            // svg_value_text.textContent = getDisplayValue();
+            svg_value_text.textContent = config.value_min.toString();
+            svg_element.appendChild(svg_value_text);
+        }
+*/
+
         /**
          *
          */
@@ -826,6 +845,7 @@
             draw_background();
             draw_track_background();
             draw_divisions();
+            // draw_units();
             draw_track();
             draw_cursor();
             draw_value();
