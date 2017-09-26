@@ -98,9 +98,10 @@
 
             // split knob:
             center_zero: false,
-            center_value: null,         // if null, the value value will be computed from the min and max in the init() method
-            split_gap: 4,               // only used when center_zero=true; is the width of the gap between the left and right track around the zero value.
+            center_value: null,         // if null, the value will be computed from the min and max in the init() method
+            center_gap: 4,              // only used when center_zero=true; is the width of the gap between the left and right track around the zero value.
 
+            // position:
             zero_at: 270.0,             // [deg] (polar) the 0 degree will be at 270 polar degrees (6 o'clock).
             angle_min: 30.0,            // [deg] Angle in knob coordinates (0 at 6 0'clock)
             angle_max: 330.0,           // [deg] Angle in knob coordinates (0 at 6 0'clock)
@@ -253,11 +254,11 @@
             // 'left_track_end_angle' and 'right_track_start_angle' are the angles that delimit this gap.
             // Only used if center_zero=true.
             if (config.linecap === 'butt') {
-                left_track_end_angle = polarToKnobAngle(Math.acos(-config.split_gap/100.0) * 180.0 / Math.PI);
-                right_track_start_angle = polarToKnobAngle(Math.acos(config.split_gap/100.0) * 180.0 / Math.PI);
+                left_track_end_angle = polarToKnobAngle(Math.acos(-config.center_gap/100.0) * 180.0 / Math.PI);
+                right_track_start_angle = polarToKnobAngle(Math.acos(config.center_gap/100.0) * 180.0 / Math.PI);
             } else {
-                left_track_end_angle = polarToKnobAngle(Math.acos(-(config.track_width*1.3 + config.split_gap)/100.0) * 180.0 / Math.PI);
-                right_track_start_angle = polarToKnobAngle(Math.acos((config.track_width*1.3 + config.split_gap)/100.0) * 180.0 / Math.PI);
+                left_track_end_angle = polarToKnobAngle(Math.acos(-(config.track_width*1.3 + config.center_gap)/100.0) * 180.0 / Math.PI);
+                right_track_start_angle = polarToKnobAngle(Math.acos((config.track_width*1.3 + config.center_gap)/100.0) * 180.0 / Math.PI);
             }
 
             // mouse_wheel_direction = _isMacOS() ? -1 : 1; //TODO: really necessary?
@@ -337,7 +338,7 @@
         function knobToPolarAngle(angle) {
             let a = config.zero_at - angle;
             if (a < 0) a = a + 360.0;
-            /*if (TRACE)*/ console.log(`knobToPolarAngle ${angle} -> ${a}`);
+            if (TRACE) console.log(`knobToPolarAngle ${angle} -> ${a}`);
             return a;
         }
 
@@ -348,7 +349,7 @@
          */
         function polarToKnobAngle(angle) {
             // "-" for changing CCW to CW
-            /*if (TRACE)*/ console.log(`polarToKnobAngle ${angle} -> ${(config.zero_at - angle + 360.0) % 360.0}`);
+            if (TRACE) console.log(`polarToKnobAngle ${angle} -> ${(config.zero_at - angle + 360.0) % 360.0}`);
             return (config.zero_at - angle + 360.0) % 360.0;    // we add 360 to handle negative values down to -360
         }
 
@@ -482,12 +483,9 @@
                 }
             }
 
-            // console.log(`wheel inc ${dy} / ${mouse_wheel_direction * minDeltaY} = ${dy / minDeltaY * mouse_wheel_direction}`);
+            incAngle(dy / minDeltaY * mouse_wheel_direction * config.mouse_wheel_acceleration);
 
-            incAngle(dy / minDeltaY * mouse_wheel_direction * mouse_wheel_direction);
-
-            // TODO: mouse speed detection
-            // https://stackoverflow.com/questions/22593286/detect-measure-scroll-speed
+            // TODO: mouse speed detection (https://stackoverflow.com/questions/22593286/detect-measure-scroll-speed)
 
             redraw();
 
@@ -512,13 +510,12 @@
         function notifyChange() {
             if (TRACE) console.log('knob value has changed');
             let value = getValue();     // TODO: cache the value
-            let event = new CustomEvent('change', { 'detail': value });
-            svg_element.dispatchEvent(event);
-
+            let event = new CustomEvent('change', {'detail': value});
+            //svg_element.dispatchEvent(event);
+            elem.dispatchEvent(event);
             if (config.onchange) {
                 config.onchange(value);
             }
-
         }
 
         /**
@@ -575,7 +572,7 @@
          */
         function getArc(from_angle, to_angle, radius) {
 
-            /*if (TRACE)*/ console.group(`getArc(${from_angle}, ${to_angle}, ${radius})`);
+            if (TRACE) console.group(`getArc(${from_angle}, ${to_angle}, ${radius})`);
 
             // SVG d: "A rx,ry xAxisRotate LargeArcFlag,SweepFlag x,y".
             // SweepFlag is either 0 or 1, and determines if the arc should be swept in a clockwise (1), or anti-clockwise (0) direction
@@ -601,8 +598,7 @@
 
             let p = `M ${x0},${y0} A ${radius},${radius} 0 ${large_arc},${arc_direction} ${x1},${y1}`;
 
-            console.groupEnd();
-
+            if (TRACE) console.groupEnd();
             if (TRACE) console.log("arc: " + p);
 
             return p;
@@ -619,6 +615,7 @@
             if (config.center_zero) {
 
                 if (getValue() === config.center_value) {
+                    // track is not drawn when the value is at center
                     return p;
                 }
 
@@ -628,8 +625,6 @@
                 } else if (angle > 180) {
                     p = getArc(right_track_start_angle, Math.max(angle, right_track_start_angle), config.track_radius);
                 }
-
-                // track is not drawn when the value is at center
 
             } else {
                 p = getArc(config.angle_min, angle, config.track_radius);

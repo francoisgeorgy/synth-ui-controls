@@ -171,8 +171,6 @@ document.addEventListener("DOMContentLoaded", function(event) {
         format: v => v.toLocaleString(undefined, {style: 'currency', currency: 'EUR'})
     });
 
-
-
     knobs['k100'] = new knob(document.getElementById('knob100'), {
         bg: false,
         cursor: false,
@@ -189,7 +187,17 @@ document.addEventListener("DOMContentLoaded", function(event) {
         }
     );
 
-    var randomize_button = document.getElementById('randomize');
+    const value_elem = document.getElementById("value");
+    const all_knobs = document.getElementsByClassName("knob");
+    for (let i = 0; i < all_knobs.length; i++) {
+        all_knobs[i].addEventListener("change", function(event) {
+            // Event.target: a reference to the object that dispatched the event. It is different from event.currentTarget
+            //               when the event handler is called during the bubbling or capturing phase of the event.
+            value_elem.innerText = `#${event.target.id}: ${event.detail}`;
+        });
+    }
+
+    var randomize_button = document.getElementById("randomize");
     randomize_button.addEventListener("click", function(event) {
         Object.getOwnPropertyNames(knobs).forEach(
             function(knob) {
