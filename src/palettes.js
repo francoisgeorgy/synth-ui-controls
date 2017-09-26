@@ -28,7 +28,7 @@ export default {
         bg_border_color: '#569DC0',
         track_bg_color: '#424242',
         track_color_init: '#FDD835',
-        track_color: '#FFFF00',
+        track_color: '#FFEC00',
         cursor_color_init: '#569DC0',
         cursor_color: '#FDD835',
         markers_color: '#3680A4',

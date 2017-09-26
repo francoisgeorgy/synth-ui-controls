@@ -181,6 +181,10 @@ document.addEventListener("DOMContentLoaded", function(event) {
         palette: 'dark'
     });
 
+    knobs['k101'] = new knob(document.getElementById('knob101'), {
+        palette: 'dark'
+    });
+
     Object.getOwnPropertyNames(knobs).forEach(
         function(knob, index) {
             knobs[knob].value = 42;

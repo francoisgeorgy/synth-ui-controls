@@ -123,9 +123,9 @@
             cursor_length: 10,
             cursor_width: 4,
 
-            dot_cursor: false,
-            cursor_dot_position: 75,    // % of radius (try 80), ignored when cursor_dot_size <= 0
-            cursor_dot_size: 0,         // % of radius (try 10)
+            // dot_cursor: false,
+            // cursor_dot_position: 75,    // % of radius (try 80), ignored when cursor_dot_size <= 0
+            // cursor_dot_size: 0,         // % of radius (try 10)
             cursor_only: false,
 
             // appearance:
@@ -146,14 +146,13 @@
             markers: 0,                         // number of markers; 0 or false to disable
             markers_radius: 40,
             markers_length: 8,
-
             markers_width: 2,
+
             class_bg: 'knob-bg',
             class_track_bg : 'knob-track-bg',
             class_track : 'knob-track',
             class_value : 'knob-value',
             class_cursor : 'knob-cursor',
-
             class_markers: 'knob-markers',
 
             snap_to_steps: false,       // TODO

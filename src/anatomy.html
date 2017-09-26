@@ -3,21 +3,47 @@
 <head>
     <style>
         body {
-            background-color: #ddd;
+            background-color: #ffffff;
             font-family: sans-serif;
         }
         #main {
             display: flex;
         }
         #main > div {
-            width: 100px;
+            /*width: 100px;*/
             background-color: #ffffff;
             border: none;
-            margin-right: 10px;
+            margin: 0 5px;
             text-align: center;
+            /*align-items: flex-end;*/
+        }
+        #main > div:nth-child(2n+1) {
+            width: 10vw;
+        }
+        #main > div:nth-child(2n) {
+            /*width: 10px;*/
+            font-size: 1.5rem;
+            padding-top: 96px;
+        }
+        #main > div:nth-child(2n+1) div:nth-child(2) {
+            height: 2rem;
+        }
+        #main > div:nth-child(2n+1) div:nth-child(3) {
+            padding: 5px;
+            margin-top: 5px;
+            font-family: monospace;
+            text-align: left;
+            background-color: #dddddd;
+        }
+        #main > div:nth-child(2n+1) div:nth-child(4) {
+            padding: 5px;
+            margin-top: 5px;
+            font-family: monospace;
+            text-align: left;
+            background-color: #dddddd;
         }
         #result {
-             width: 200px;
+             width: 10vw;
              background-color: #ffffff;
              border: none;
              margin-top: 10px;
@@ -28,34 +54,75 @@
     <div id="main">
         <div>
             <div id="bg"></div>
-            background
+            <div>background</div>
+            <div>.knob-bg</div>
+            <div>bg_radius: 32</div>
         </div>
+        <div>+</div>
         <div>
             <div id="bg-border"></div>
-            background border
+            <div>background border</div>
+            <div>.knob-bg</div>
+            <div>bg_border_width: 2</div>
         </div>
+        <div>+</div>
         <div>
             <div id="track-bg"></div>
-            track background
+            <div>track background</div>
+            <div>.knob-track-bg</div>
+            <div>track_bg_radius: 40<br />track_bg_width: 8</div>
         </div>
+        <div>+</div>
         <div>
             <div id="markers"></div>
-            markers
+            <div>markers</div>
+            <div>.knob-markers</div>
+            <div>markers: 10<br />
+                markers_radius: 40<br/>
+                markers_length: 8</div>
+            markers_width: 2
         </div>
+        <div>+</div>
         <div>
             <div id="track"></div>
-            track
+            <div>track</div>
+            <div>.knob-track</div>
+            <div>track_radius: 40<br />track_width: 8</div>
         </div>
+        <div>+</div>
         <div>
             <div id="cursor"></div>
-            cursor
+            <div>cursor</div>
+            <div>.knob-cursor</div>
+            <div>cursor_radius: 18<br />
+                cursor_length: 10<br />
+                cursor_width: 4</div>
         </div>
+        <div>+</div>
         <div>
             <div id="value"></div>
-            value
+            <div>value</div>
+            <div>.knob-value</div>
+            <div>font_family: 'sans-serif'<br />
+                font_size: 25</div>
+        </div>
+        <div>=</div>
+    </div>
+    <div style="display:flex;margin-top:20px">
+        <div id="result"></div>
+        <div style="margin-left:20px">
+<pre>new knob(document.getElementById('value'), {
+    cursor_only: true,
+    cursor: false,
+    bg_color: 'transparent',
+    track_bg: false,
+    bg_border_width: 0,
+    value_text: true,
+    initial_value: 42,
+    markers_width: 2
+});</pre>
         </div>
     </div>
-    <div id="result"></div>
 </body>
 <script type="module">
 
@@ -102,7 +169,7 @@
             bg_border_width: 0,
             track_bg: false,
             value_text: false,
-            initial_value: 66
+            initial_value: 42
         });
         new knob(document.getElementById('cursor'), {
             cursor_only: true,
@@ -110,7 +177,7 @@
             track_bg: false,
             bg_border_width: 0,
             value_text: false,
-            initial_value: 66
+            initial_value: 42
         });
         new knob(document.getElementById('value'), {
             cursor_only: true,
@@ -119,11 +186,12 @@
             track_bg: false,
             bg_border_width: 0,
             value_text: true,
-            initial_value: 66
+            initial_value: 42
         });
         new knob(document.getElementById('result'), {
-            initial_value: 66,
-            markers: 10
+            initial_value: 42,
+            markers: 20,
+            markers_width: 1
         });
     });
 
