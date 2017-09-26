@@ -16,7 +16,7 @@
             grid-template-columns: repeat(5, 1fr);
         }
         .knob {
-            width: 90vh;
+            width: 40vw;
             border: none;
         }
     </style>
@@ -25,6 +25,9 @@
     <div id="light-bg" class="grid">
         <div>
             <svg class="knob" id="knob"></svg>
+        </div>
+        <div>
+            <svg class="knob" id="knob2"></svg>
         </div>
     </div>
 </body>
@@ -45,6 +48,22 @@
             track_radius: 38,
             track_width: 14,
             initial_value: 42
+        });
+        new knob(document.getElementById('knob2'), {
+            center_zero: true,
+            split_gap: 2,
+            value_min:-100,
+            value_max:100,
+            initial_value: 42,
+            bg_color: 'transparent',
+            bg_radius: 48,
+            bg_border_width: 2,
+            track_radius: 38,
+            track_width: 14,
+            track_bg_radius: 38,
+            track_bg_width: 14,
+            cursor: false,
+//            linecap: 'butt'
         });
     });
 

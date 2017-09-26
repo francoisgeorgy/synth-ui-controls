@@ -14,13 +14,11 @@
         // Like a real knob, it's the knob's position that determines the knob's value.
         // Therefore, the value is computed from the knob's position (angle).
         // However, the user has the possibility to directly set the value and in that case
-        // the knob's position will be computed from the value and the knob redrawn accordingly.
-
-        //TODO: do all angle changes (inc, dec, set) with the knob's angle. Convert to polar angle (SVG coord)
-        //      only when drawing. Only do the % 360 computation with the polar angle.
+        // the knob's position (angle) will be computed from the value and the knob redrawn
+        // accordingly.
 
         //
-        // All angles in method parameters are in [degrees]
+        // All angles in method parameters are in [degrees] (except for polarToKnobAngle() and getViewboxCoord()).
         //
         // By default:
         // - knob direction is CLOCKWISE
@@ -91,13 +89,17 @@
             with_label: false,
 
             rotation: CW,
-            center_zero: false,
 
             default_value: 0,
             initial_value: 0,
             value_min: 0.0,
             value_max: 100.0,
-            value_step: 1,              // null means ignore
+            value_resolution: 1,        // null means ignore
+
+            // split knob:
+            center_zero: false,
+            center_value: null,         // if null, the value value will be computed from the min and max in the init() method
+            split_gap: 4,               // only used when center_zero=true; is the width of the gap between the left and right track around the zero value.
 
             zero_at: 270.0,             // [deg] (polar) the 0 degree will be at 270 polar degrees (6 o'clock).
             angle_min: 30.0,            // [deg] Angle in knob coordinates (0 at 6 0'clock)
@@ -161,45 +163,16 @@
             onchange: null              // callback function
         };
 
-        //
-        // Color palettes:
-        // - light: http://paletton.com/#uid=33s0u0kiCFn8GVde7NVmtwSqXtg
-        // - dark:
-        //
-/*
-        let palettes = {
-            light : {
-                markers_color: '#3680A4',
-                bg_border_color: '#569DC0',
-                bg_color: '#B1DAEE',
-                cursor_color: '#1D6D93',
-                cursor_color_init: '#569DC0',
-                track_bg_color: '#B1DAEE',
-                track_color_init: '#569DC0',
-                track_color: '#1D6D93',
-                font_color: '#1D6D93',
-            },
-            dark: {
-                markers_color: '#3680A4',
-                bg_border_color: '#569DC0',
-                bg_color: '#0C141F',
-                cursor_color: '#1D6D93',
-                cursor_color_init: '#569DC0',
-                track_bg_color: '#B1DAEE',
-                track_color_init: '#569DC0',
-                track_color: '#1D6D93',
-                font_color: '#1D6D93',
-            }
-        };
-*/
-
-
         //---------------------------------------------------------------------
         // Consolidate all configs:
+
         let data_config = JSON.parse(elem.dataset.config || '{}');
         let c = Object.assign({}, defaults, palettes[defaults.palette], conf, data_config);
         // we re-assign conf and data_config for the case they override some of the palette colors.
         let config = Object.assign(c, palettes[c.palette], conf, data_config);
+
+        //---------------------------------------------------------------------
+        // Terminates the SVG element setup:
 
         let viewbox_height;
         if (config.with_label || (config.value_position >= (100 - (config.font_size / 2)))) {
@@ -209,19 +182,19 @@
             viewbox_height = 100;
         }
 
+        // For the use of null argument with setAttributeNS, see https://developer.mozilla.org/en-US/docs/Web/SVG/Namespaces_Crash_Course#Scripting_in_namespaced_XML
+        svg_element.setAttributeNS("http://www.w3.org/2000/xmlns/", "xmlns:xlink", "http://www.w3.org/1999/xlink");
+        svg_element.setAttributeNS(null, "viewBox", `0 0 ${VIEWBOX_WIDTH} ${viewbox_height}`);
+
         // Center of arc in knob coordinates and in ViewPort's pixels relative to the <svg> ClientBoundingRect.
         let arcCenterXPixels = 0;
         let arcCenterYPixels = 0; // equal to arcCenterXPixels because the knob is a circle
 
         //---------------------------------------------------------------------
         // Pre-computed values to speed-up operations:
-        // (we use variables instead of const to allow the re-configuration of the knob at any moment)
-        // let angle_min_polar = 0.0;              // [degrees] initialized in init()
-        // let angle_max_polar = 0.0;              // [degrees] initialized in init()
+
         // At the top of the knob, we leave a gap between the left and right tracks.
-        // These are the polar angles that delimit this gap:
-        // let left_track_end_angle_polar = 0;     // angle in [degrees]
-        // let right_track_start_angle_polar = 0;  // angle in [degrees]
+        // These are angles that delimit this gap:
         let left_track_end_angle = 0;     // angle in [degrees]
         let right_track_start_angle = 0;  // angle in [degrees]
 
@@ -231,7 +204,6 @@
         let value = 0.0;                    // current knob's value [value_min..value_max]
         let angle = config.angle_min;       // current knob's angle in [deg] and in knob's coordinate (not polar)
 
-        // let current_angle_polar = 0.0;      // [degrees] Angle in polar coordinates (0 at 3 o'clock)
         let distance = 0.0;                 // distance from arc center to mouse position
         let mouse_wheel_direction = 1;      // dependant of the OS
 
@@ -268,31 +240,44 @@
          */
         function init() {
 
-            // compute min and max angles in polar coord:
-            // angle_min_polar = knobToPolarAngle(config.angle_min);
-            // angle_max_polar = knobToPolarAngle(config.angle_max);
+            if (config.center_zero) {
+                if (!config.center_value) {
+                    config.center_value = getRoundedValue((config.value_max - config.value_min) / 2 + config.value_min);
+                }
+            }
 
-            // set initial angle:
+            // set initial value and angle:
             setValue(config.initial_value ? config.initial_value : config.default_value);
 
             // At the top of the knob, we leave a gap between the left and right tracks.
-            // These are the polar angles that delimit this gap.
+            // 'left_track_end_angle' and 'right_track_start_angle' are the angles that delimit this gap.
             // Only used if center_zero=true.
-            // left_track_end_angle_polar = Math.acos(-(config.track_bg_width*1.5)/100.0) * 180.0 / Math.PI;
-            // right_track_start_angle_polar = Math.acos((config.track_bg_width*1.5)/100.0) * 180.0 / Math.PI;
-            left_track_end_angle = polarToKnobAngle(Math.acos(-(config.track_bg_width*1.5)/100.0) * 180.0 / Math.PI);
-            right_track_start_angle = polarToKnobAngle(Math.acos((config.track_bg_width*1.5)/100.0) * 180.0 / Math.PI);
+            if (config.linecap === 'butt') {
+                left_track_end_angle = polarToKnobAngle(Math.acos(-config.split_gap/100.0) * 180.0 / Math.PI);
+                right_track_start_angle = polarToKnobAngle(Math.acos(config.split_gap/100.0) * 180.0 / Math.PI);
+            } else {
+                left_track_end_angle = polarToKnobAngle(Math.acos(-(config.track_width*1.3 + config.split_gap)/100.0) * 180.0 / Math.PI);
+                right_track_start_angle = polarToKnobAngle(Math.acos((config.track_width*1.3 + config.split_gap)/100.0) * 180.0 / Math.PI);
+            }
 
             // mouse_wheel_direction = _isMacOS() ? -1 : 1; //TODO: really necessary?
         }
 
         /**
+         * Return the value "rounded" according to config.value_resolution
+         * @param v value
+         */
+        function getRoundedValue(v) {
+            return config.value_resolution === null ? v : Math.round(v / config.value_resolution) * config.value_resolution;
+        }
+
+        /**
          *
-         * @param polar
+         * @param angle [deg] in knob's coordinates
          * @returns {*}
          */
-        function getDisplayValue(polar) {
-            let v = getValue(polar);
+        function getDisplayValue(angle) {
+            let v = getValue(angle);
             return config.format(v);
         }
 
@@ -302,14 +287,8 @@
          * @returns {number}
          */
         function getValue(a) {
-            // let i = polarToKnobAngle(polar === undefined ? current_angle_polar : polar);
-            // let a === undefined ? current_angle_polar : polar);
-            // let v = ((i - config.angle_min) / (config.angle_max - config.angle_min)) * (config.value_max - config.value_min) + config.value_min;
             let v = (((a || angle) - config.angle_min) / (config.angle_max - config.angle_min)) * (config.value_max - config.value_min) + config.value_min;
-            if (config.value_step === null) {
-                return v;
-            }
-            return Math.round(v / config.value_step) * config.value_step;
+            return getRoundedValue(v);
         }
 
         /**
@@ -325,8 +304,6 @@
                 value = v;
             }
             setAngle(((v - config.value_min) / (config.value_max - config.value_min)) * (config.angle_max - config.angle_min) + config.angle_min);
-            // setPolarAngle(knobToPolarAngle(a));
-            // setAngle(a);
             return true;
         }
 
@@ -407,7 +384,6 @@
 
             if (TRACE) console.log(`mouseUpdate: position in svg = ${dxPixels}, ${dyPixels} pixels; ${dx.toFixed(3)}, ${dy.toFixed(3)} rel.; angle ${angle_rad.toFixed(3)} rad`);
 
-            // setPolarAngle(angle_rad * 180.0 / Math.PI, true);     // [rad] to [deg]
             setAngle(polarToKnobAngle(angle_rad * 180.0 / Math.PI), true);
 
             // distance from arc center to mouse position:
@@ -595,7 +571,7 @@
          *
          * @param from_angle in [degree] in knob's coordinates
          * @param to_angle in [degree] in knob's coordinates
-         * @param radius (polar, 0 at 3 o'clock)
+         * @param radius
          */
         function getArc(from_angle, to_angle, radius) {
 
@@ -642,40 +618,24 @@
 
             if (config.center_zero) {
 
-                //let a = current_angle_polar > config.zero_at ? (current_angle_polar - 360.0) : current_angle_polar;
-                // let a = angle > config.zero_at ? (current_angle_polar - 360.0) : current_angle_polar;
-                //
-                // if (TRACE) console.log(`split: v=${getValue()}, c=${current_angle_polar}, a=${a}, left=${left_track_end_angle}, right=${right_track_start_angle}`);
-
-                // if (a > left_track_end_angle_polar) {
-                //     p = getArc(a, left_track_end_angle_polar, config.track_radius);
-                // } else if (a < right_track_start_angle_polar) {
-                //     p = getArc(right_track_start_angle_polar, a, config.track_radius);
-                // } else {
-                //     // track is not drawn when the value is at center
-                // }
+                if (getValue() === config.center_value) {
+                    return p;
+                }
 
                 // we assume the split is at 180 [deg] (knob's angle)
                 if (angle < 180) {
-                    p = getArc(angle, left_track_end_angle, config.track_radius);
+                    p = getArc(Math.min(angle, left_track_end_angle), left_track_end_angle, config.track_radius);
                 } else if (angle > 180) {
-                    p = getArc(right_track_start_angle, angle, config.track_radius);
-                } else {
-                    // track is not drawn when the value is at center
+                    p = getArc(right_track_start_angle, Math.max(angle, right_track_start_angle), config.track_radius);
                 }
 
+                // track is not drawn when the value is at center
+
             } else {
-                // p = getArc(angle_min_polar, current_angle_polar, config.track_radius);
                 p = getArc(config.angle_min, angle, config.track_radius);
             }
 
             return p;
-        }
-
-        function draw_init() {
-            // For the use of null argument with setAttributeNS, see https://developer.mozilla.org/en-US/docs/Web/SVG/Namespaces_Crash_Course#Scripting_in_namespaced_XML
-            svg_element.setAttributeNS("http://www.w3.org/2000/xmlns/", "xmlns:xlink", "http://www.w3.org/1999/xlink");
-            svg_element.setAttributeNS(null, "viewBox", `0 0 ${VIEWBOX_WIDTH} ${viewbox_height}`);
         }
 
         /**
@@ -815,7 +775,6 @@
          * @returns {string}
          */
         function getTrackCursor() {
-            // let a = current_angle_polar;
             let a = knobToPolarAngle(angle);
             let from = getViewboxCoord(a, config.cursor_radius);
             let to = getViewboxCoord(a, config.cursor_radius + config.cursor_length);
@@ -871,7 +830,6 @@
          *
          */
         function draw() {
-            draw_init();
             draw_background();
             draw_track_background();
             draw_markers();

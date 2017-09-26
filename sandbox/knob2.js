@@ -41,7 +41,7 @@
             default_value: 0,
             value_min: 0.0,
             value_max: 100.0,
-            value_step: 1,      // null means ignore
+            value_resolution: 1,      // null means ignore
             snap_to_steps: false,        // TODO
             value_formatting: null      // TODO; callback function
         };
@@ -143,10 +143,10 @@
         function getValue(polar) {
             let i = polarToKnobAngle(polar === undefined ? getPolarAngle() : polar);
             let v = ((i - config.angle_min) / (config.angle_max - config.angle_min)) * (config.value_max - config.value_min) + config.value_min;
-            if (config.value_step === null) {
+            if (config.value_resolution === null) {
                 return v;
             }
-            return Math.round(v / config.value_step) * config.value_step;
+            return Math.round(v / config.value_resolution) * config.value_resolution;
         }
 
         function setValue(v) {
