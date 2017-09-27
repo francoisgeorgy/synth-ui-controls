@@ -123,15 +123,11 @@
             cursor_length: 10,
             cursor_width: 4,
 
-            // dot_cursor: false,
-            // cursor_dot_position: 75,    // % of radius (try 80), ignored when cursor_dot_size <= 0
-            // cursor_dot_size: 0,         // % of radius (try 10)
-            cursor_only: false,
-
             // appearance:
             palette: 'lightgray',
             bg: true,
             track_bg: true,
+            track: true,
             cursor: true,
             // CSS class names
             linecap: 'round',                   // https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/stroke-linecap
@@ -750,7 +746,7 @@
          *
          */
         function draw_track() {
-            if (config.cursor_only) return;
+            if (!config.track) return;
             let p = getTrackPath();
             if (p) {
                 svg_track = document.createElementNS(NS, "path");

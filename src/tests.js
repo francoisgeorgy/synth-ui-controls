@@ -44,7 +44,7 @@ document.addEventListener("DOMContentLoaded", function(event) {
     });
     knobs['k7'] = new knob(document.getElementById('knob7'), {
         bg: false,
-        cursor_only: true,
+        track: false,
         cursor_radius: 30,          // same unit as radius
         cursor_length: 20,
         cursor_width: 10,
@@ -60,7 +60,7 @@ document.addEventListener("DOMContentLoaded", function(event) {
         track_bg_radius: 48,
         track_bg_width: 2,
         // track_background: false,
-        cursor_only: true,
+        track: false,
         cursor_radius: 37,          // same unit as radius
         cursor_length: 0,
         cursor_width: 16,
@@ -122,7 +122,7 @@ document.addEventListener("DOMContentLoaded", function(event) {
         track_bg_radius: 30,
         track_bg_width: 2,
         // track_background: false,
-        cursor_only: true,
+        track: false,
         cursor_radius: 38,          // same unit as radius
         cursor_length: 10,
         cursor_width: 4,
@@ -169,6 +169,26 @@ document.addEventListener("DOMContentLoaded", function(event) {
         cursor_width: 6,
         font_size: 20,
         format: v => v.toLocaleString(undefined, {style: 'currency', currency: 'EUR'})
+    });
+
+    knobs['k15'] = new knob(document.getElementById('knob15'), {
+        angle_min: 45,
+        angle_max: 315,
+        bg_radius:30,
+        bg_border_width: 4,
+        markers: 6,                         // number of markers; 0 or false to disable
+        markers_radius: 32,
+        markers_length: 8,
+        markers_width: 2,
+        bg_border_color: '#999',
+        markers_color: '#999',      // blend the markers with the bg border
+        track_bg: false,
+        track: false,
+        cursor_radius: 32,          // same unit as radius
+        cursor_length: 10,
+        cursor_width: 6,
+        // linecap: 'butt',
+        initial_value: 42
     });
 
     knobs['k100'] = new knob(document.getElementById('knob100'), {

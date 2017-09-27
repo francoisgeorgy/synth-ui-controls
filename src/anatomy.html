@@ -112,7 +112,7 @@
         <div id="result"></div>
         <div style="margin-left:20px">
 <pre>new knob(document.getElementById('value'), {
-    cursor_only: true,
+    track: false,
     cursor: false,
     bg_color: 'transparent',
     track_bg: false,
@@ -130,14 +130,14 @@
 
     document.addEventListener("DOMContentLoaded", function(event) {
         new knob(document.getElementById('bg'), {
-            cursor_only: true,
+            track: false,
             cursor: false,
             track_bg: false,
             bg_border_width: 0,
             value_text: false
         });
         new knob(document.getElementById('bg-border'), {
-            cursor_only: true,
+            track: false,
             cursor: false,
             track_bg: false,
             bg_color: 'transparent',
@@ -148,14 +148,14 @@
         //TODO: add true/false for background disk
 
         new knob(document.getElementById('track-bg'), {
-            cursor_only: true,
+            track: false,
             cursor: false,
             bg_color: 'transparent',
             bg_border_width: 0,
             value_text: false
         });
         new knob(document.getElementById('markers'), {
-            cursor_only: true,
+            track: false,
             cursor: false,
             bg_color: 'transparent',
             bg_border_width: 0,
@@ -172,7 +172,7 @@
             initial_value: 42
         });
         new knob(document.getElementById('cursor'), {
-            cursor_only: true,
+            track: false,
             bg_color: 'transparent',
             track_bg: false,
             bg_border_width: 0,
@@ -180,7 +180,7 @@
             initial_value: 42
         });
         new knob(document.getElementById('value'), {
-            cursor_only: true,
+            track: false,
             cursor: false,
             bg_color: 'transparent',
             track_bg: false,
