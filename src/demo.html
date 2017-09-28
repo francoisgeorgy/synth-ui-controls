@@ -72,7 +72,7 @@
         </div>
         <div>
             <svg class="knob" id="knob-with-bg"></svg>
-            <div>With a background</div>
+            <div>With a background and a cursor</div>
         </div>
 <!--
         <div>
@@ -176,12 +176,18 @@
 //        });
         new knob(document.getElementById('knob-split-gap'), {
             center_zero: true,
+            angle_min: 20,
+            angle_max: 340,
             value_min:-100,
             value_max:100,
             linecap: 'round',
             center_gap: 30,
-            angle_min: 45,
-            angle_max: 360-45
+//            angle_min: 45,
+//            angle_max: 360-45,
+            track_bg_width: 15,
+            track_bg_radius: 35,
+            track_width: 15,
+            track_radius: 35
         });
         new knob(document.getElementById('knob-dot-cursor-markers'), {
             bg: true,
