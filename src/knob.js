@@ -125,12 +125,12 @@
 
             // appearance:
             palette: 'lightgray',
-            bg: true,
+            bg: false,
             track_bg: true,
             track: true,
-            cursor: true,
+            cursor: false,
             // CSS class names
-            linecap: 'round',                   // https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/stroke-linecap
+            linecap: 'butt',                   // https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/stroke-linecap
             value_text: true,
             value_position: HALF_HEIGHT + 8,    // empirical value: HALF_HEIGHT + config.font_size / 3
             // value_formatting: null,          // TODO; callback function
